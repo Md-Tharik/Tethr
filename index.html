@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tethr | Activate Hardware Grayscale</title>
+    <style>
+        :root {
+            --bg-color: #000000;
+            --card-bg: #111111;
+            --border-color: #333333;
+            --text-primary: #ffffff;
+            --text-secondary: #aaaaaa;
+            --accent: #ffffff;
+            --success: #34C759;
+            --error: #FF3B30;
+        }
+
+        body {
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 480px;
+            width: 90%;
+            padding: 40px;
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 24px;
+            text-align: center;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+        }
+
+        .logo {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            border: 2px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 24px;
+            background-color: #000;
+        }
+
+        h1 {
+            font-size: 28px;
+            font-weight: 800;
+            margin: 0 0 12px;
+            letter-spacing: 1px;
+        }
+
+        p {
+            color: var(--text-secondary);
+            font-size: 15px;
+            line-height: 1.6;
+            margin: 0 0 32px;
+        }
+
+        .btn {
+            background-color: var(--accent);
+            color: #000;
+            border: none;
+            padding: 16px 32px;
+            font-size: 16px;
+            font-weight: 700;
+            border-radius: 12px;
+            cursor: pointer;
+            width: 100%;
+            transition: transform 0.2s, opacity 0.2s;
+        }
+
+        .btn:hover {
+            transform: scale(1.02);
+        }
+
+        .btn:disabled {
+            background-color: var(--border-color);
+            color: var(--text-secondary);
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .status-box {
+            margin-top: 24px;
+            padding: 16px;
+            border-radius: 12px;
+            background-color: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
+            font-family: monospace;
+            font-size: 13px;
+            color: var(--text-secondary);
+            text-align: left;
+            white-space: pre-wrap;
+            display: none;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .success-text { color: var(--success); }
+        .error-text { color: var(--error); }
+
+        .app-version-selector {
+            margin-bottom: 24px;
+            text-align: left;
+        }
+
+        .app-version-selector select {
+            width: 100%;
+            padding: 12px;
+            background-color: #000;
+            color: white;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 14px;
+            outline: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="logo">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            </svg>
+        </div>
+        
+        <h1>Tethr Activation</h1>
+        <p>Connect your phone via USB. This will grant Tethr the secure permission required to control your screen's hardware grayscale.</p>
+
+        <div class="app-version-selector">
+            <label style="color: var(--text-secondary); font-size: 12px; margin-bottom: 8px; display: block;">Select App Version:</label>
+            <select id="versionSelect">
+                <option value="com.example.tethr">Commercial Release (com.example.tethr)</option>
+                <option value="com.example.tethr.debug">Developer/Demo Build (com.example.tethr.debug)</option>
+            </select>
+        </div>
+
+        <button id="connectBtn" class="btn">Connect Device</button>
+
+        <div id="statusBox" class="status-box"></div>
+    </div>
+
+    <!-- Required implementation for ya-webadb -->
+    <script type="module">
+        // Using Ya-WebADB v0.0.22 from CDN
+        import { Adb, AdbDaemonWebUsbDevice } from 'https://cdn.jsdelivr.net/npm/@yume-chan/adb@0.0.22/esm/index.js';
+        import { AdbDaemonWebUsbConnection } from 'https://cdn.jsdelivr.net/npm/@yume-chan/adb-daemon-webusb@0.0.22/esm/index.js';
+        import { AdbDaemonTransport } from 'https://cdn.jsdelivr.net/npm/@yume-chan/adb@0.0.22/esm/index.js';
+        import { Consumable, WritableStream } from 'https://cdn.jsdelivr.net/npm/@yume-chan/stream-extra@0.0.22/esm/index.js';
+        import { RsaSigner } from 'https://cdn.jsdelivr.net/npm/@yume-chan/adb@0.0.22/esm/index.js'; // Requires subtle crypto
+
+        const connectBtn = document.getElementById('connectBtn');
+        const statusBox = document.getElementById('statusBox');
+        const versionSelect = document.getElementById('versionSelect');
+
+        function log(message, type = 'info') {
+            statusBox.style.display = 'block';
+            let formattedMsg = message;
+            if (type === 'success') formattedMsg = `<span class="success-text">${message}</span>`;
+            if (type === 'error') formattedMsg = `<span class="error-text">${message}</span>`;
+            statusBox.innerHTML += `> ${formattedMsg}\n`;
+            statusBox.scrollTop = statusBox.scrollHeight;
+        }
+
+        // Basic RSA Key Generation for ADB Auth
+        async function generateAdbCredentialStore() {
+            return {
+                async *iterateKeys() { },
+                async generateKey() {
+                    const keyPair = await window.crypto.subtle.generateKey(
+                        {
+                            name: "RSASSA-PKCS1-v1_5",
+                            modulusLength: 2048,
+                            publicExponent: new Uint8Array([0x01, 0x00, 0x01]),
+                            hash: "SHA-256",
+                        },
+                        true,
+                        ["sign", "verify"]
+                    );
+                    
+                    const privateKey = await window.crypto.subtle.exportKey("pkcs8", keyPair.privateKey);
+                    return new Uint8Array(privateKey);
+                }
+            };
+        }
+
+        connectBtn.addEventListener('click', async () => {
+            try {
+                if (!navigator.usb) {
+                    throw new Error("WebUSB is not supported by your browser. Please use Google Chrome or Edge on a desktop/laptop.");
+                }
+
+                log("Requesting USB device...");
+                connectBtn.disabled = true;
+
+                // 1. Request device (Android devices with ADB enabled)
+                const device = await navigator.usb.requestDevice({ filters: [{ classCode: 255, subclassCode: 66, protocolCode: 1 }] });
+                log(`Selected: ${device.productName}`);
+
+                // 2. Open connection
+                const webUsbDevice = new AdbDaemonWebUsbDevice(device, [{ classCode: 255, subclassCode: 66, protocolCode: 1 }]);
+                const connection = await webUsbDevice.connect();
+                
+                log("Authenticating (Check your phone screen for an RSA prompt)...");
+                
+                // 3. Authenticate
+                const transport = await AdbDaemonTransport.authenticate({
+                    serial: webUsbDevice.serial,
+                    connection,
+                    credentialStore: await generateAdbCredentialStore()
+                });
+
+                const adb = new Adb(transport);
+                log("Connected successfully!", "success");
+
+                // 4. Run the PM command
+                const targetPackage = versionSelect.value;
+                const command = `pm grant ${targetPackage} android.permission.WRITE_SECURE_SETTINGS`;
+                
+                log(`Executing: ${command}`);
+                
+                const process = await adb.subprocess.spawn(command);
+                
+                let output = "";
+                await process.stdout.pipeTo(new WritableStream({
+                    write(chunk) {
+                        output += new TextDecoder().decode(chunk);
+                    }
+                }));
+
+                await process.exit;
+
+                if (output.toLowerCase().includes("error") || output.toLowerCase().includes("exception")) {
+                    log(`Command failed: ${output}`, "error");
+                } else {
+                    log("Permission granted successfully!", "success");
+                    log("You can now close this tab and return to the Tethr app.");
+                }
+
+            } catch (err) {
+                log(`Error: ${err.message}`, "error");
+            } finally {
+                connectBtn.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>
