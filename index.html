@@ -153,8 +153,8 @@
     <!-- Required implementation for ya-webadb -->
     <script type="module">
         // Using Ya-WebADB v0.0.22 from esm.sh which correctly rewrites internal imports
-        import { Adb, AdbDaemonTransport, RsaSigner } from 'https://esm.sh/@yume-chan/adb@0.0.22';
-        import { AdbDaemonWebUsbConnection, AdbDaemonWebUsbDevice } from 'https://esm.sh/@yume-chan/adb-daemon-webusb@0.0.22';
+        import { Adb, AdbDaemonTransport } from 'https://esm.sh/@yume-chan/adb@0.0.22';
+        import { AdbDaemonWebUsbDeviceManager } from 'https://esm.sh/@yume-chan/adb-daemon-webusb@0.0.22';
         import { Consumable, WritableStream } from 'https://esm.sh/@yume-chan/stream-extra@0.0.22';
 
         const connectBtn = document.getElementById('connectBtn');
@@ -187,7 +187,7 @@
                     );
                     
                     const privateKey = await window.crypto.subtle.exportKey("pkcs8", keyPair.privateKey);
-                    return new Uint8Array(privateKey);
+                    return { buffer: new Uint8Array(privateKey) };
                 }
             };
         }
@@ -201,19 +201,26 @@
                 log("Requesting USB device...");
                 connectBtn.disabled = true;
 
-                // 1. Request device (Android devices with ADB enabled)
-                const device = await navigator.usb.requestDevice({ filters: [{ classCode: 255, subclassCode: 66, protocolCode: 1 }] });
-                log(`Selected: ${device.productName}`);
+                // 1. Request device via WebUSB manager
+                const manager = AdbDaemonWebUsbDeviceManager.BROWSER;
+                if (!manager) {
+                    throw new Error("Browser manager not found");
+                }
+                const device = await manager.requestDevice();
+                if (!device) {
+                    throw new Error("No device selected");
+                }
+                
+                log(`Selected: ${device.name}`);
 
                 // 2. Open connection
-                const webUsbDevice = new AdbDaemonWebUsbDevice(device, [{ classCode: 255, subclassCode: 66, protocolCode: 1 }]);
-                const connection = await webUsbDevice.connect();
+                const connection = await device.connect();
                 
                 log("Authenticating (Check your phone screen for an RSA prompt)...");
                 
                 // 3. Authenticate
                 const transport = await AdbDaemonTransport.authenticate({
-                    serial: webUsbDevice.serial,
+                    serial: device.serial,
                     connection,
                     credentialStore: await generateAdbCredentialStore()
                 });
