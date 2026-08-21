@@ -152,12 +152,10 @@
 
     <!-- Required implementation for ya-webadb -->
     <script type="module">
-        // Using Ya-WebADB v0.0.22 from CDN
-        import { Adb, AdbDaemonWebUsbDevice } from 'https://cdn.jsdelivr.net/npm/@yume-chan/adb@0.0.22/esm/index.js';
-        import { AdbDaemonWebUsbConnection } from 'https://cdn.jsdelivr.net/npm/@yume-chan/adb-daemon-webusb@0.0.22/esm/index.js';
-        import { AdbDaemonTransport } from 'https://cdn.jsdelivr.net/npm/@yume-chan/adb@0.0.22/esm/index.js';
-        import { Consumable, WritableStream } from 'https://cdn.jsdelivr.net/npm/@yume-chan/stream-extra@0.0.22/esm/index.js';
-        import { RsaSigner } from 'https://cdn.jsdelivr.net/npm/@yume-chan/adb@0.0.22/esm/index.js'; // Requires subtle crypto
+        // Using Ya-WebADB v0.0.22 from esm.sh which correctly rewrites internal imports
+        import { Adb, AdbDaemonWebUsbDevice, AdbDaemonTransport, RsaSigner } from 'https://esm.sh/@yume-chan/adb@0.0.22';
+        import { AdbDaemonWebUsbConnection } from 'https://esm.sh/@yume-chan/adb-daemon-webusb@0.0.22';
+        import { Consumable, WritableStream } from 'https://esm.sh/@yume-chan/stream-extra@0.0.22';
 
         const connectBtn = document.getElementById('connectBtn');
         const statusBox = document.getElementById('statusBox');
