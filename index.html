@@ -905,7 +905,6 @@ const observer = new IntersectionObserver(function(entries) {
         if (entry.isIntersecting) {
             entry.target.style.transitionDelay = (idx * 0.08) + 's';
             entry.target.classList.add('visible');
-            observer.unHeight: 0;
             observer.unobserve(entry.target);
         }
     });
