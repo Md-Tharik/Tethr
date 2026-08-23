@@ -357,6 +357,13 @@
             gap: 8px;
             opacity: 0.35;
             animation: hero-fade-up 1s 1s cubic-bezier(0.4, 0, 0.2, 1) both;
+            z-index: 1;
+        }
+
+        @media (max-height: 750px) {
+            .scroll-hint {
+                display: none;
+            }
         }
 
         .scroll-hint-text {
