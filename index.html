@@ -10,161 +10,263 @@
             window.location.href = '/activator';
         }
     </script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg-color: #000000;
-            --card-bg: #111111;
-            --border-color: #333333;
+            --bg-color: #050508;
+            --accent-glow: rgba(111, 66, 193, 0.4);
+            --accent-blue: #00f2fe;
+            --accent-purple: #4facfe;
+            --card-bg: rgba(20, 20, 25, 0.6);
+            --border-color: rgba(255, 255, 255, 0.1);
             --text-primary: #ffffff;
-            --text-secondary: #aaaaaa;
-            --accent: #ffffff;
+            --text-secondary: #a0a0b0;
         }
 
         body {
             margin: 0;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            font-family: 'Inter', sans-serif;
             background-color: var(--bg-color);
             color: var(--text-primary);
             line-height: 1.6;
+            overflow-x: hidden;
+            background-image: radial-gradient(circle at 50% -20%, var(--accent-glow), transparent 60%);
+        }
+
+        /* Ambient animated background grid */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-image: linear-gradient(var(--border-color) 1px, transparent 1px),
+                              linear-gradient(90deg, var(--border-color) 1px, transparent 1px);
+            background-size: 50px 50px;
+            opacity: 0.15;
+            z-index: -1;
+            transform: perspective(500px) rotateX(60deg) translateY(-100px) translateZ(-200px);
+            animation: gridMove 20s linear infinite;
+        }
+
+        @keyframes gridMove {
+            0% { transform: perspective(500px) rotateX(60deg) translateY(0) translateZ(-200px); }
+            100% { transform: perspective(500px) rotateX(60deg) translateY(50px) translateZ(-200px); }
         }
 
         header {
-            padding: 80px 20px 40px;
+            padding: 100px 20px 60px;
             text-align: center;
+            animation: fadeIn 1s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         .logo {
             width: 80px;
             height: 80px;
             border-radius: 50%;
-            border: 2px solid var(--border-color);
+            border: 1px solid var(--border-color);
             display: flex;
             align-items: center;
             justify-content: center;
-            margin: 0 auto 24px;
-            background: linear-gradient(145deg, #1a1a1a, #0a0a0a);
-            box-shadow: 0 0 20px rgba(255,255,255,0.05);
+            margin: 0 auto 32px;
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 0 30px var(--accent-glow);
+            position: relative;
+        }
+        
+        .logo::after {
+            content: '';
+            position: absolute;
+            inset: -2px;
+            border-radius: 50%;
+            background: linear-gradient(45deg, var(--accent-blue), var(--accent-purple));
+            z-index: -1;
+            opacity: 0.5;
+            filter: blur(10px);
         }
 
         .logo svg {
             width: 40px;
             height: 40px;
             fill: none;
-            stroke: var(--accent);
+            stroke: #fff;
             stroke-width: 2;
             stroke-linecap: round;
             stroke-linejoin: round;
         }
 
         h1 {
-            font-size: 3.5rem;
+            font-size: 5rem;
             margin: 0 0 16px;
             font-weight: 900;
-            letter-spacing: -1px;
+            letter-spacing: -2px;
+            background: linear-gradient(to right, #fff, #a0a0b0);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
 
         .subtitle {
-            font-size: 1.2rem;
+            font-size: 1.25rem;
             color: var(--text-secondary);
-            max-width: 600px;
-            margin: 0 auto 40px;
+            max-width: 650px;
+            margin: 0 auto 50px;
+            font-weight: 400;
         }
 
         .hero-buttons {
             display: flex;
-            gap: 16px;
+            gap: 20px;
             justify-content: center;
             flex-wrap: wrap;
         }
 
         .btn {
-            padding: 16px 32px;
-            border-radius: 30px;
+            padding: 18px 40px;
+            border-radius: 40px;
             font-weight: 600;
             font-size: 1.1rem;
             text-decoration: none;
-            transition: all 0.2s ease;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
         }
 
         .btn-primary {
-            background-color: var(--text-primary);
-            color: var(--bg-color);
-            border: none;
+            background: #ffffff;
+            color: #000000;
+            box-shadow: 0 0 20px rgba(255,255,255,0.2);
         }
 
         .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(255,255,255,0.1);
+            transform: translateY(-2px) scale(1.02);
+            box-shadow: 0 0 30px rgba(255,255,255,0.4);
         }
 
         .btn-secondary {
-            background-color: transparent;
+            background-color: rgba(255, 255, 255, 0.05);
             color: var(--text-primary);
             border: 1px solid var(--border-color);
+            backdrop-filter: blur(10px);
         }
 
         .btn-secondary:hover {
-            background-color: var(--card-bg);
-            border-color: var(--text-secondary);
+            background-color: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
         }
 
         section {
-            padding: 60px 20px;
-            max-width: 1000px;
+            padding: 80px 20px;
+            max-width: 1100px;
             margin: 0 auto;
         }
 
         .grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 24px;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 30px;
             margin-top: 40px;
         }
 
         .card {
             background-color: var(--card-bg);
             border: 1px solid var(--border-color);
-            border-radius: 20px;
-            padding: 32px;
-            transition: transform 0.2s;
+            border-radius: 24px;
+            padding: 40px 32px;
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            transition: transform 0.4s ease, border-color 0.4s ease, box-shadow 0.4s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            opacity: 0;
+            transition: opacity 0.4s ease;
         }
 
         .card:hover {
-            transform: translateY(-4px);
+            transform: translateY(-10px);
+            border-color: rgba(255,255,255,0.2);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4), 0 0 30px var(--accent-glow);
+        }
+
+        .card:hover::before {
+            opacity: 1;
+        }
+
+        .card-icon {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, var(--accent-purple), var(--accent-blue));
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 24px;
+            box-shadow: 0 10px 20px rgba(79, 172, 254, 0.2);
+        }
+        
+        .card-icon svg {
+            width: 24px;
+            height: 24px;
+            stroke: #fff;
+            fill: none;
+            stroke-width: 2;
         }
 
         .card h3 {
             margin-top: 0;
             font-size: 1.5rem;
+            font-weight: 800;
+            margin-bottom: 12px;
         }
 
         .card p {
             color: var(--text-secondary);
             margin-bottom: 0;
+            font-size: 1.05rem;
         }
 
         footer {
             text-align: center;
-            padding: 40px 20px;
+            padding: 60px 20px;
             border-top: 1px solid var(--border-color);
             color: var(--text-secondary);
-            margin-top: 40px;
+            margin-top: 60px;
+            font-size: 0.9rem;
         }
 
         footer a {
             color: var(--text-secondary);
             text-decoration: none;
-            margin: 0 10px;
+            margin: 0 15px;
+            transition: color 0.2s;
         }
 
         footer a:hover {
             color: var(--text-primary);
         }
 
-        @media (max-width: 600px) {
-            h1 { font-size: 2.5rem; }
+        @media (max-width: 768px) {
+            h1 { font-size: 3rem; }
             .hero-buttons { flex-direction: column; }
-            .btn { width: 100%; box-sizing: border-box; text-align: center; }
+            .btn { width: 100%; box-sizing: border-box; }
         }
     </style>
 </head>
@@ -176,11 +278,11 @@
                 <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
             </svg>
         </div>
-        <h1>Tethr.</h1>
-        <p class="subtitle">The first anti-doomscrolling app powered by on-device Edge AI. Break the loop with adaptive friction and true hardware grayscale.</p>
+        <h1>Break the Loop.</h1>
+        <p class="subtitle">The first anti-doomscrolling app powered by on-device Edge AI. We use adaptive cognitive friction and true hardware grayscale to give you your time back.</p>
         
         <div class="hero-buttons">
-            <a href="https://play.google.com/store/apps/details?id=ai.tethr.app" class="btn btn-primary">Get it on Google Play</a>
+            <a href="https://mohamedtharik.in/Mail-list/" class="btn btn-primary">Join Waitlist</a>
             <a href="/activator" class="btn btn-secondary">Hardware Grayscale Activator</a>
         </div>
     </header>
@@ -188,27 +290,54 @@
     <section>
         <div class="grid">
             <div class="card">
-                <h3>Edge AI Trigger</h3>
-                <p>Tethr monitors your usage strictly on-device. The ML model learns your scrolling habits and calculates a personalized time limit. If you relapse and scroll more, your allowed time plummets.</p>
+                <div class="card-icon">
+                    <svg viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+                </div>
+                <h3>Edge AI</h3>
+                <p>Tethr monitors your usage strictly on-device. The ML model learns your scrolling habits and calculates a personalized time limit. If you relapse, your allowed time plummets.</p>
             </div>
             <div class="card">
+                <div class="card-icon">
+                    <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+                </div>
                 <h3>Escalation Matrix</h3>
-                <p>Gentle nudges don't work. Tethr starts with a timer pill, escalates to locking your screen into true hardware grayscale, and finally demands cognitive friction (math quizzes) to keep scrolling.</p>
+                <p>Gentle nudges don't work. Tethr starts with a timer pill, escalates to locking your screen into true grayscale, and finally demands cognitive friction (math quizzes) to keep scrolling.</p>
             </div>
             <div class="card">
+                <div class="card-icon">
+                    <svg viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg>
+                </div>
                 <h3>True Hardware Grayscale</h3>
-                <p>Unlike other apps that just draw a gray box over your screen (which you can swipe away), Tethr uses an ADB-granted secure setting to disable colors at the hardware level.</p>
+                <p>Unlike other apps that just draw a gray box over your screen, Tethr uses a secure ADB setting to disable colors at the hardware level, making it impossible to bypass.</p>
             </div>
         </div>
     </section>
 
     <footer>
         <p>&copy; 2026 Tethr AI. All rights reserved.</p>
-        <div>
+        <div style="margin-top: 16px;">
             <a href="/privacy.html">Privacy Policy</a>
             <a href="/terms.html">Terms of Service</a>
         </div>
     </footer>
 
+    <script>
+        // Simple scroll animation observer
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.style.opacity = 1;
+                    entry.target.style.transform = 'translateY(0)';
+                }
+            });
+        }, { threshold: 0.1 });
+
+        document.querySelectorAll('.card').forEach((card, index) => {
+            card.style.opacity = 0;
+            card.style.transform = 'translateY(30px)';
+            card.style.transition = `all 0.6s cubic-bezier(0.4, 0, 0.2, 1) ${index * 0.15}s`;
+            observer.observe(card);
+        });
+    </script>
 </body>
 </html>
