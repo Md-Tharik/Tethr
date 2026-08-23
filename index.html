@@ -159,34 +159,18 @@
             to { opacity: 1; transform: translate(-50%, -50%) scale(1.1); }
         }
 
-        /* Logo Orb */
+        /* ═══ Logo Orb ═══ */
         .logo-orb {
             position: relative;
-            width: 90px;
-            height: 90px;
-            margin: 0 auto 40px;
+            width: 70px;
+            height: 70px;
+            margin: 0 auto 24px;
             animation: hero-fade-up 1s 0.1s cubic-bezier(0.4, 0, 0.2, 1) both;
         }
 
-        .logo-orb-ring {
-            position: absolute;
-            inset: -12px;
-            border-radius: 50%;
-            background: conic-gradient(from 0deg, transparent, rgba(120, 80, 255, 0.6), transparent, rgba(0, 200, 255, 0.6), transparent) border-box;
-            -webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
-            mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
-            -webkit-mask-composite: xor;
-            mask-composite: exclude;
-            animation: spin-slow 8s linear infinite;
-        }
-
-        @keyframes spin-slow {
-            to { transform: rotate(360deg); }
-        }
-
         .logo-orb-inner {
-            width: 90px;
-            height: 90px;
+            width: 70px;
+            height: 70px;
             border-radius: 50%;
             background: var(--gray-900);
             border: 1px solid var(--border-bright);
@@ -197,8 +181,8 @@
         }
 
         .logo-orb-inner svg {
-            width: 38px;
-            height: 38px;
+            width: 34px;
+            height: 34px;
             stroke: var(--white);
             fill: none;
             stroke-width: 1.8;
@@ -241,15 +225,15 @@
         /* Headline */
         h1 {
             font-size: clamp(2.8rem, 8vw, 6.5rem);
-            font-weight: 900;
+            font-weight: 700;
             line-height: 1.03;
             letter-spacing: -0.04em;
-            margin-bottom: 24px;
+            margin-bottom: 16px;
             animation: hero-fade-up 1s 0.3s cubic-bezier(0.4, 0, 0.2, 1) both;
         }
 
         .gradient-text {
-            background: linear-gradient(135deg, #fff 20%, rgba(180, 160, 255, 0.8) 60%, #fff 100%);
+            background: linear-gradient(to right, #ffffff 0%, #a1a1aa 100%);
             background-size: 200% 200%;
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
@@ -732,7 +716,6 @@
     <!-- HERO -->
     <section class="hero">
         <div class="logo-orb">
-            <div class="logo-orb-ring"></div>
             <div class="logo-orb-inner">
                 <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
             </div>
@@ -922,6 +905,7 @@ const observer = new IntersectionObserver(function(entries) {
         if (entry.isIntersecting) {
             entry.target.style.transitionDelay = (idx * 0.08) + 's';
             entry.target.classList.add('visible');
+            observer.unHeight: 0;
             observer.unobserve(entry.target);
         }
     });
