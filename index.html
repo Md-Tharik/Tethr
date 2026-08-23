@@ -3,341 +3,946 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tethr | Anti-Doomscrolling Edge AI</title>
+    <title>Tethr -- Break the Loop</title>
+    <meta name="description" content="The first anti-doomscrolling app powered by on-device Edge AI. Adaptive cognitive friction. True hardware grayscale.">
+
     <!-- Redirect for users coming from old app versions -->
     <script>
         if (window.location.hostname === 'tethr-ai.vercel.app') {
             window.location.href = '/activator';
         }
-    </script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
+    <\/script>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+
     <style>
-        :root {
-            --bg-color: #050508;
-            --accent-glow: rgba(111, 66, 193, 0.4);
-            --accent-blue: #00f2fe;
-            --accent-purple: #4facfe;
-            --card-bg: rgba(20, 20, 25, 0.6);
-            --border-color: rgba(255, 255, 255, 0.1);
-            --text-primary: #ffffff;
-            --text-secondary: #a0a0b0;
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
         }
+
+        :root {
+            --black: #000000;
+            --white: #ffffff;
+            --gray-100: #f5f5f5;
+            --gray-400: #888899;
+            --gray-600: #444455;
+            --gray-800: #18181f;
+            --gray-900: #0d0d12;
+            --glow-purple: rgba(120, 80, 255, 0.5);
+            --border: rgba(255, 255, 255, 0.07);
+            --border-bright: rgba(255, 255, 255, 0.15);
+        }
+
+        html { scroll-behavior: smooth; }
 
         body {
-            margin: 0;
             font-family: 'Inter', sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-primary);
-            line-height: 1.6;
+            background: var(--black);
+            color: var(--white);
             overflow-x: hidden;
-            background-image: radial-gradient(circle at 50% -20%, var(--accent-glow), transparent 60%);
+            min-height: 100vh;
         }
 
-        /* Ambient animated background grid */
-        body::before {
-            content: '';
+        #bg-canvas {
             position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .content-layer {
+            position: relative;
+            z-index: 2;
+        }
+
+        /* NAV */
+        nav {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 24px 5%;
+            border-bottom: 1px solid var(--border);
+            backdrop-filter: blur(20px);
+            position: sticky;
             top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            background-image: linear-gradient(var(--border-color) 1px, transparent 1px),
-                              linear-gradient(90deg, var(--border-color) 1px, transparent 1px);
-            background-size: 50px 50px;
-            opacity: 0.15;
-            z-index: -1;
-            transform: perspective(500px) rotateX(60deg) translateY(-100px) translateZ(-200px);
-            animation: gridMove 20s linear infinite;
+            z-index: 100;
+            background: rgba(0,0,0,0.6);
+            animation: slideDown 0.8s cubic-bezier(0.4, 0, 0.2, 1) both;
         }
 
-        @keyframes gridMove {
-            0% { transform: perspective(500px) rotateX(60deg) translateY(0) translateZ(-200px); }
-            100% { transform: perspective(500px) rotateX(60deg) translateY(50px) translateZ(-200px); }
-        }
-
-        header {
-            padding: 100px 20px 60px;
-            text-align: center;
-            animation: fadeIn 1s ease-out;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-20px); }
             to { opacity: 1; transform: translateY(0); }
         }
 
-        .logo {
-            width: 80px;
-            height: 80px;
-            border-radius: 50%;
-            border: 1px solid var(--border-color);
+        .nav-logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+            color: var(--white);
+        }
+
+        .nav-logo-icon {
+            width: 32px;
+            height: 32px;
+            background: var(--white);
+            border-radius: 8px;
             display: flex;
             align-items: center;
             justify-content: center;
-            margin: 0 auto 32px;
-            background: rgba(255, 255, 255, 0.03);
-            backdrop-filter: blur(10px);
-            box-shadow: 0 0 30px var(--accent-glow);
-            position: relative;
-        }
-        
-        .logo::after {
-            content: '';
-            position: absolute;
-            inset: -2px;
-            border-radius: 50%;
-            background: linear-gradient(45deg, var(--accent-blue), var(--accent-purple));
-            z-index: -1;
-            opacity: 0.5;
-            filter: blur(10px);
         }
 
-        .logo svg {
-            width: 40px;
-            height: 40px;
+        .nav-logo-icon svg {
+            width: 18px;
+            height: 18px;
+            stroke: var(--black);
             fill: none;
-            stroke: #fff;
-            stroke-width: 2;
+            stroke-width: 2.5;
+        }
+
+        .nav-logo-text {
+            font-size: 1.1rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+        }
+
+        .nav-cta {
+            background: var(--white);
+            color: var(--black);
+            padding: 10px 24px;
+            border-radius: 100px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            text-decoration: none;
+            transition: all 0.25s ease;
+            white-space: nowrap;
+        }
+
+        .nav-cta:hover {
+            background: var(--gray-100);
+            transform: scale(1.04);
+        }
+
+        /* HERO */
+        .hero {
+            min-height: 90vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 80px 5% 60px;
+            position: relative;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: 30%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 700px;
+            height: 700px;
+            background: radial-gradient(ellipse, rgba(80, 50, 200, 0.18) 0%, transparent 70%);
+            pointer-events: none;
+            animation: orb-pulse 6s ease-in-out infinite alternate;
+        }
+
+        @keyframes orb-pulse {
+            from { opacity: 0.6; transform: translate(-50%, -50%) scale(1); }
+            to { opacity: 1; transform: translate(-50%, -50%) scale(1.1); }
+        }
+
+        /* Logo Orb */
+        .logo-orb {
+            position: relative;
+            width: 90px;
+            height: 90px;
+            margin: 0 auto 40px;
+            animation: hero-fade-up 1s 0.1s cubic-bezier(0.4, 0, 0.2, 1) both;
+        }
+
+        .logo-orb-ring {
+            position: absolute;
+            inset: -12px;
+            border-radius: 50%;
+            background: conic-gradient(from 0deg, transparent, rgba(120, 80, 255, 0.6), transparent, rgba(0, 200, 255, 0.6), transparent) border-box;
+            -webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
+            mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            animation: spin-slow 8s linear infinite;
+        }
+
+        @keyframes spin-slow {
+            to { transform: rotate(360deg); }
+        }
+
+        .logo-orb-inner {
+            width: 90px;
+            height: 90px;
+            border-radius: 50%;
+            background: var(--gray-900);
+            border: 1px solid var(--border-bright);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 0 40px rgba(100, 60, 220, 0.3), inset 0 1px 0 rgba(255,255,255,0.1);
+        }
+
+        .logo-orb-inner svg {
+            width: 38px;
+            height: 38px;
+            stroke: var(--white);
+            fill: none;
+            stroke-width: 1.8;
             stroke-linecap: round;
             stroke-linejoin: round;
         }
 
+        /* Badge */
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid var(--border-bright);
+            border-radius: 100px;
+            padding: 6px 16px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: var(--gray-400);
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            margin-bottom: 32px;
+            animation: hero-fade-up 1s 0.2s cubic-bezier(0.4, 0, 0.2, 1) both;
+        }
+
+        .badge-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #00e5b0;
+            box-shadow: 0 0 8px #00e5b0;
+            animation: blink 2s ease-in-out infinite;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        /* Headline */
         h1 {
-            font-size: 5rem;
-            margin: 0 0 16px;
+            font-size: clamp(2.8rem, 8vw, 6.5rem);
             font-weight: 900;
-            letter-spacing: -2px;
-            background: linear-gradient(to right, #fff, #a0a0b0);
+            line-height: 1.03;
+            letter-spacing: -0.04em;
+            margin-bottom: 24px;
+            animation: hero-fade-up 1s 0.3s cubic-bezier(0.4, 0, 0.2, 1) both;
+        }
+
+        .gradient-text {
+            background: linear-gradient(135deg, #fff 20%, rgba(180, 160, 255, 0.8) 60%, #fff 100%);
+            background-size: 200% 200%;
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: gradient-shift 6s ease-in-out infinite alternate;
         }
 
-        .subtitle {
-            font-size: 1.25rem;
-            color: var(--text-secondary);
-            max-width: 650px;
-            margin: 0 auto 50px;
+        @keyframes gradient-shift {
+            from { background-position: 0% 0%; }
+            to { background-position: 100% 100%; }
+        }
+
+        .hero-sub {
+            font-size: clamp(1rem, 2.5vw, 1.25rem);
+            color: var(--gray-400);
+            max-width: 600px;
+            line-height: 1.7;
+            margin-bottom: 52px;
             font-weight: 400;
+            animation: hero-fade-up 1s 0.4s cubic-bezier(0.4, 0, 0.2, 1) both;
         }
 
-        .hero-buttons {
+        /* CTA Buttons */
+        .hero-btns {
             display: flex;
-            gap: 20px;
+            gap: 14px;
             justify-content: center;
             flex-wrap: wrap;
+            animation: hero-fade-up 1s 0.5s cubic-bezier(0.4, 0, 0.2, 1) both;
         }
 
-        .btn {
-            padding: 18px 40px;
-            border-radius: 40px;
-            font-weight: 600;
-            font-size: 1.1rem;
-            text-decoration: none;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        .btn-join {
             position: relative;
-            overflow: hidden;
             display: inline-flex;
             align-items: center;
             justify-content: center;
+            gap: 8px;
+            padding: 16px 36px;
+            border-radius: 100px;
+            font-size: 1rem;
+            font-weight: 700;
+            text-decoration: none;
+            color: var(--black);
+            background: var(--white);
+            overflow: hidden;
+            transition: transform 0.25s ease, box-shadow 0.25s ease;
+            box-shadow: 0 0 0 1px rgba(255,255,255,0.3);
         }
 
-        .btn-primary {
-            background: #ffffff;
-            color: #000000;
-            box-shadow: 0 0 20px rgba(255,255,255,0.2);
+        .btn-join::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(200,180,255,0.4), transparent);
+            opacity: 0;
+            transition: opacity 0.3s ease;
         }
 
-        .btn-primary:hover {
-            transform: translateY(-2px) scale(1.02);
-            box-shadow: 0 0 30px rgba(255,255,255,0.4);
+        .btn-join:hover {
+            transform: translateY(-3px) scale(1.02);
+            box-shadow: 0 8px 30px rgba(255,255,255,0.2);
         }
 
-        .btn-secondary {
-            background-color: rgba(255, 255, 255, 0.05);
-            color: var(--text-primary);
-            border: 1px solid var(--border-color);
+        .btn-join:hover::before { opacity: 1; }
+
+        .btn-join-arrow {
+            display: inline-block;
+            transition: transform 0.25s ease;
+        }
+
+        .btn-join:hover .btn-join-arrow { transform: translateX(4px); }
+
+        .btn-ghost {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 16px 32px;
+            border-radius: 100px;
+            font-size: 1rem;
+            font-weight: 600;
+            text-decoration: none;
+            color: var(--gray-400);
+            border: 1px solid var(--border-bright);
+            background: rgba(255,255,255,0.03);
             backdrop-filter: blur(10px);
+            transition: all 0.25s ease;
         }
 
-        .btn-secondary:hover {
-            background-color: rgba(255, 255, 255, 0.1);
-            border-color: rgba(255, 255, 255, 0.3);
+        .btn-ghost:hover {
+            color: var(--white);
+            border-color: rgba(255,255,255,0.35);
+            background: rgba(255,255,255,0.07);
             transform: translateY(-2px);
         }
 
-        section {
-            padding: 80px 20px;
+        /* Scroll Hint */
+        .scroll-hint {
+            position: absolute;
+            bottom: 36px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            opacity: 0.35;
+            animation: hero-fade-up 1s 1s cubic-bezier(0.4, 0, 0.2, 1) both;
+        }
+
+        .scroll-hint-text {
+            font-size: 0.7rem;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            color: var(--gray-400);
+        }
+
+        .scroll-hint-line {
+            width: 1px;
+            height: 40px;
+            background: linear-gradient(to bottom, var(--white), transparent);
+            animation: scroll-line 2s ease-in-out infinite;
+        }
+
+        @keyframes scroll-line {
+            0%, 100% { transform: scaleY(0); transform-origin: top; }
+            50% { transform: scaleY(1); transform-origin: top; }
+        }
+
+        .divider {
+            width: 100%;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--border-bright), transparent);
+        }
+
+        /* FEATURES */
+        .features {
+            padding: 100px 5%;
+        }
+
+        .section-label {
+            display: block;
+            text-align: center;
+            font-size: 0.75rem;
+            font-weight: 600;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            color: var(--gray-400);
+            margin-bottom: 20px;
+        }
+
+        .section-title {
+            text-align: center;
+            font-size: clamp(1.8rem, 4vw, 3rem);
+            font-weight: 800;
+            letter-spacing: -0.03em;
+            margin-bottom: 70px;
+            line-height: 1.15;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
+            gap: 24px;
             max-width: 1100px;
             margin: 0 auto;
         }
 
-        .grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-            gap: 30px;
-            margin-top: 40px;
-        }
-
-        .card {
-            background-color: var(--card-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 24px;
-            padding: 40px 32px;
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            transition: transform 0.4s ease, border-color 0.4s ease, box-shadow 0.4s ease;
+        .feature-card {
+            background: var(--gray-900);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 36px 30px;
             position: relative;
             overflow: hidden;
+            cursor: default;
+            transition: border-color 0.4s ease, transform 0.4s ease;
+            will-change: transform;
         }
 
-        .card::before {
+        .feature-card::before {
             content: '';
             position: absolute;
-            top: 0; left: 0; right: 0;
+            inset: -1px;
+            border-radius: 21px;
+            background: linear-gradient(135deg, rgba(120, 80, 255, 0), rgba(0, 200, 255, 0));
+            transition: all 0.5s ease;
+            z-index: -1;
+        }
+
+        .feature-card::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 20px; right: 20px;
             height: 1px;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
             opacity: 0;
             transition: opacity 0.4s ease;
         }
 
-        .card:hover {
-            transform: translateY(-10px);
-            border-color: rgba(255,255,255,0.2);
-            box-shadow: 0 20px 40px rgba(0,0,0,0.4), 0 0 30px var(--accent-glow);
+        .feature-card:hover::before {
+            background: linear-gradient(135deg, rgba(120, 80, 255, 0.5), rgba(0, 200, 255, 0.4));
         }
 
-        .card:hover::before {
-            opacity: 1;
+        .feature-card:hover::after { opacity: 1; }
+
+        .feature-card:hover {
+            border-color: transparent;
+            transform: translateY(-8px);
         }
 
-        .card-icon {
-            width: 48px;
-            height: 48px;
-            background: linear-gradient(135deg, var(--accent-purple), var(--accent-blue));
-            border-radius: 12px;
+        .card-glow {
+            position: absolute;
+            top: -40px;
+            right: -40px;
+            width: 180px;
+            height: 180px;
+            border-radius: 50%;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+        }
+
+        .feature-card:hover .card-glow { opacity: 1; }
+
+        .card-glow-ai     { background: radial-gradient(circle, rgba(100, 60, 255, 0.25), transparent 70%); }
+        .card-glow-matrix { background: radial-gradient(circle, rgba(0, 180, 255, 0.2), transparent 70%); }
+        .card-glow-gray   { background: radial-gradient(circle, rgba(0, 200, 160, 0.2), transparent 70%); }
+
+        .feature-icon {
+            width: 52px;
+            height: 52px;
+            border-radius: 14px;
             display: flex;
             align-items: center;
             justify-content: center;
-            margin-bottom: 24px;
-            box-shadow: 0 10px 20px rgba(79, 172, 254, 0.2);
+            margin-bottom: 28px;
         }
-        
-        .card-icon svg {
+
+        .feature-icon svg {
             width: 24px;
             height: 24px;
-            stroke: #fff;
+            stroke: var(--white);
+            fill: none;
+            stroke-width: 1.8;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        .icon-ai     { background: rgba(100, 60, 255, 0.15); border: 1px solid rgba(100, 60, 255, 0.3); }
+        .icon-matrix { background: rgba(0, 180, 255, 0.12);  border: 1px solid rgba(0, 180, 255, 0.25); }
+        .icon-gray   { background: rgba(0, 200, 160, 0.12);  border: 1px solid rgba(0, 200, 160, 0.25); }
+
+        .feature-card h3 {
+            font-size: 1.3rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            margin-bottom: 14px;
+        }
+
+        .feature-card p {
+            color: var(--gray-400);
+            font-size: 0.95rem;
+            line-height: 1.75;
+        }
+
+        /* HOW IT WORKS */
+        .how {
+            padding: 80px 5%;
+            max-width: 820px;
+            margin: 0 auto;
+        }
+
+        .steps {
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+            margin-top: 56px;
+            position: relative;
+        }
+
+        .steps::before {
+            content: '';
+            position: absolute;
+            left: 22px;
+            top: 0;
+            bottom: 0;
+            width: 1px;
+            background: linear-gradient(to bottom, transparent, var(--border-bright), transparent);
+        }
+
+        .step {
+            display: flex;
+            gap: 28px;
+            align-items: flex-start;
+            padding: 0 0 44px 0;
+            opacity: 0;
+            transform: translateX(-20px);
+            transition: opacity 0.6s ease, transform 0.6s ease;
+        }
+
+        .step.visible {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        .step-num {
+            flex-shrink: 0;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: var(--gray-900);
+            border: 1px solid var(--border-bright);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: var(--gray-400);
+            position: relative;
+            z-index: 1;
+        }
+
+        .step-body h4 {
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+            letter-spacing: -0.01em;
+        }
+
+        .step-body p {
+            font-size: 0.95rem;
+            color: var(--gray-400);
+            line-height: 1.7;
+        }
+
+        /* CTA SECTION */
+        .cta-section {
+            padding: 100px 5%;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .cta-section::before {
+            content: '';
+            position: absolute;
+            bottom: -100px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(ellipse, rgba(80, 50, 200, 0.15) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        .cta-section h2 {
+            font-size: clamp(2rem, 5vw, 4rem);
+            font-weight: 900;
+            letter-spacing: -0.04em;
+            line-height: 1.08;
+            margin-bottom: 20px;
+        }
+
+        .cta-section p {
+            color: var(--gray-400);
+            font-size: 1.1rem;
+            margin-bottom: 44px;
+            max-width: 500px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        /* FOOTER */
+        footer {
+            border-top: 1px solid var(--border);
+            padding: 36px 5%;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .footer-logo {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--gray-400);
+            font-size: 0.85rem;
+            text-decoration: none;
+        }
+
+        .footer-logo-icon {
+            width: 22px;
+            height: 22px;
+            background: var(--gray-800);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid var(--border-bright);
+        }
+
+        .footer-logo-icon svg {
+            width: 12px;
+            height: 12px;
+            stroke: var(--white);
             fill: none;
             stroke-width: 2;
         }
 
-        .card h3 {
-            margin-top: 0;
-            font-size: 1.5rem;
-            font-weight: 800;
-            margin-bottom: 12px;
+        .footer-links {
+            display: flex;
+            gap: 24px;
+            flex-wrap: wrap;
         }
 
-        .card p {
-            color: var(--text-secondary);
-            margin-bottom: 0;
-            font-size: 1.05rem;
-        }
-
-        footer {
-            text-align: center;
-            padding: 60px 20px;
-            border-top: 1px solid var(--border-color);
-            color: var(--text-secondary);
-            margin-top: 60px;
-            font-size: 0.9rem;
-        }
-
-        footer a {
-            color: var(--text-secondary);
+        .footer-links a {
+            font-size: 0.85rem;
+            color: var(--gray-600);
             text-decoration: none;
-            margin: 0 15px;
             transition: color 0.2s;
         }
 
-        footer a:hover {
-            color: var(--text-primary);
+        .footer-links a:hover { color: var(--white); }
+
+        @keyframes hero-fade-up {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
-        @media (max-width: 768px) {
-            h1 { font-size: 3rem; }
-            .hero-buttons { flex-direction: column; }
-            .btn { width: 100%; box-sizing: border-box; }
+        .reveal {
+            opacity: 0;
+            transform: translateY(24px);
+            transition: opacity 0.7s ease, transform 0.7s ease;
+        }
+
+        .reveal.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* MOBILE */
+        @media (max-width: 640px) {
+            nav { padding: 18px 5%; }
+            .hero { padding: 60px 5% 80px; min-height: 80vh; }
+            .hero-btns { flex-direction: column; align-items: center; width: 100%; }
+            .btn-join, .btn-ghost { width: 100%; justify-content: center; }
+            .features { padding: 60px 5%; }
+            .steps::before { left: 20px; }
+            footer { flex-direction: column; align-items: flex-start; }
+            .scroll-hint { display: none; }
         }
     </style>
 </head>
 <body>
 
-    <header>
-        <div class="logo">
-            <svg viewBox="0 0 24 24">
-                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-            </svg>
-        </div>
-        <h1>Break the Loop.</h1>
-        <p class="subtitle">The first anti-doomscrolling app powered by on-device Edge AI. We use adaptive cognitive friction and true hardware grayscale to give you your time back.</p>
-        
-        <div class="hero-buttons">
-            <a href="https://mohamedtharik.in/Mail-list/" class="btn btn-primary">Join Waitlist</a>
-            <a href="/activator" class="btn btn-secondary">Hardware Grayscale Activator</a>
-        </div>
-    </header>
+<canvas id="bg-canvas"></canvas>
 
-    <section>
-        <div class="grid">
-            <div class="card">
-                <div class="card-icon">
-                    <svg viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
-                </div>
-                <h3>Edge AI</h3>
-                <p>Tethr monitors your usage strictly on-device. The ML model learns your scrolling habits and calculates a personalized time limit. If you relapse, your allowed time plummets.</p>
+<div class="content-layer">
+
+    <!-- NAV -->
+    <nav>
+        <a href="/" class="nav-logo">
+            <div class="nav-logo-icon">
+                <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
             </div>
-            <div class="card">
-                <div class="card-icon">
-                    <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+            <span class="nav-logo-text">Tethr</span>
+        </a>
+        <a href="https://mohamedtharik.in/Mail-list/" class="nav-cta">Join Waitlist</a>
+    </nav>
+
+    <!-- HERO -->
+    <section class="hero">
+        <div class="logo-orb">
+            <div class="logo-orb-ring"></div>
+            <div class="logo-orb-inner">
+                <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            </div>
+        </div>
+
+        <div class="hero-badge">
+            <span class="badge-dot"></span>
+            Closed Beta &mdash; Now Accepting
+        </div>
+
+        <h1 class="gradient-text">Break<br>the Loop.</h1>
+
+        <p class="hero-sub">
+            The first anti-doomscrolling app powered by on-device Edge AI.
+            Adaptive friction. True hardware grayscale. No cloud. No compromise.
+        </p>
+
+        <div class="hero-btns">
+            <a href="https://mohamedtharik.in/Mail-list/" class="btn-join">
+                Join Waitlist <span class="btn-join-arrow">&rarr;</span>
+            </a>
+            <a href="/activator" class="btn-ghost">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+                Grayscale Activator
+            </a>
+        </div>
+
+        <div class="scroll-hint">
+            <span class="scroll-hint-text">Scroll</span>
+            <div class="scroll-hint-line"></div>
+        </div>
+    </section>
+
+    <div class="divider"></div>
+
+    <!-- FEATURES -->
+    <section class="features">
+        <span class="section-label reveal">What makes Tethr different</span>
+        <h2 class="section-title reveal">Built to fight the algorithm.<br>Not coddle you.</h2>
+
+        <div class="features-grid">
+            <div class="feature-card reveal">
+                <div class="card-glow card-glow-ai"></div>
+                <div class="feature-icon icon-ai">
+                    <svg viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+                </div>
+                <h3>On-Device Edge AI</h3>
+                <p>Tethr monitors usage strictly on your device. The ML model learns your scrolling patterns and sets a personalized trigger. Relapse more? Your time limit shrinks automatically.</p>
+            </div>
+
+            <div class="feature-card reveal">
+                <div class="card-glow card-glow-matrix"></div>
+                <div class="feature-icon icon-matrix">
+                    <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
                 </div>
                 <h3>Escalation Matrix</h3>
-                <p>Gentle nudges don't work. Tethr starts with a timer pill, escalates to locking your screen into true grayscale, and finally demands cognitive friction (math quizzes) to keep scrolling.</p>
+                <p>Three-tier system: a subtle timer pill first, then your screen locks into true grayscale, then cognitive friction &mdash; a math quiz you must solve to keep scrolling. No easy exits.</p>
             </div>
-            <div class="card">
-                <div class="card-icon">
-                    <svg viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg>
+
+            <div class="feature-card reveal">
+                <div class="card-glow card-glow-gray"></div>
+                <div class="feature-icon icon-gray">
+                    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
                 </div>
                 <h3>True Hardware Grayscale</h3>
-                <p>Unlike other apps that just draw a gray box over your screen, Tethr uses a secure ADB setting to disable colors at the hardware level, making it impossible to bypass.</p>
+                <p>We don't draw a gray box over your screen. Tethr uses an ADB-granted secure setting to kill color at the hardware level. Swipe-proof. Truly inescapable.</p>
             </div>
         </div>
     </section>
 
+    <div class="divider"></div>
+
+    <!-- HOW IT WORKS -->
+    <section class="how">
+        <span class="section-label reveal">How it works</span>
+        <h2 class="section-title reveal">Friction by design.</h2>
+
+        <div class="steps">
+            <div class="step">
+                <div class="step-num">01</div>
+                <div class="step-body">
+                    <h4>Grant permissions once</h4>
+                    <p>Accessibility service and a one-time ADB command. Everything runs locally after that &mdash; zero servers involved.</p>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-num">02</div>
+                <div class="step-body">
+                    <h4>AI builds your baseline</h4>
+                    <p>Tethr observes your scrolling sessions. The model maps your average session length to a personalized trigger window.</p>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-num">03</div>
+                <div class="step-body">
+                    <h4>Friction escalates</h4>
+                    <p>When you hit your trigger: pill, then grayscale, then math quiz. Each tier is harder to dismiss. By design.</p>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-num">04</div>
+                <div class="step-body">
+                    <h4>The loop tightens if you relapse</h4>
+                    <p>The AI notes your real session length and your next trigger time drops. The system learns against you.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA -->
+    <section class="cta-section">
+        <h2 class="reveal gradient-text">Ready to<br>reclaim your time?</h2>
+        <p class="reveal">Join the closed beta. Slots are limited &mdash; we're onboarding testers carefully.</p>
+        <div class="reveal">
+            <a href="https://mohamedtharik.in/Mail-list/" class="btn-join" style="font-size:1.05rem; padding: 18px 44px;">
+                Get Early Access <span class="btn-join-arrow">&rarr;</span>
+            </a>
+        </div>
+    </section>
+
+    <!-- FOOTER -->
     <footer>
-        <p>&copy; 2026 Tethr AI. All rights reserved.</p>
-        <div style="margin-top: 16px;">
-            <a href="/privacy.html">Privacy Policy</a>
-            <a href="/terms.html">Terms of Service</a>
+        <a href="/" class="footer-logo">
+            <div class="footer-logo-icon">
+                <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            </div>
+            &copy; 2026 Tethr AI
+        </a>
+        <div class="footer-links">
+            <a href="/activator">Activator</a>
+            <a href="/privacy.html">Privacy</a>
+            <a href="/terms.html">Terms</a>
         </div>
     </footer>
 
-    <script>
-        // Simple scroll animation observer
-        const observer = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    entry.target.style.opacity = 1;
-                    entry.target.style.transform = 'translateY(0)';
-                }
-            });
-        }, { threshold: 0.1 });
+</div>
 
-        document.querySelectorAll('.card').forEach((card, index) => {
-            card.style.opacity = 0;
-            card.style.transform = 'translateY(30px)';
-            card.style.transition = `all 0.6s cubic-bezier(0.4, 0, 0.2, 1) ${index * 0.15}s`;
-            observer.observe(card);
+<script>
+// PARTICLE CANVAS
+(function() {
+    const canvas = document.getElementById('bg-canvas');
+    const ctx = canvas.getContext('2d');
+    let particles = [], w, h;
+
+    function resize() {
+        w = canvas.width = window.innerWidth;
+        h = canvas.height = window.innerHeight;
+    }
+
+    function rnd(a, b) { return a + Math.random() * (b - a); }
+
+    function mkParticle() {
+        return { x: rnd(0, w), y: rnd(0, h), r: rnd(0.3, 1.1), dx: rnd(-0.2, 0.2), dy: rnd(-0.35, -0.1), alpha: rnd(0.05, 0.45), decay: rnd(0.0003, 0.001) };
+    }
+
+    function init() {
+        particles = [];
+        const n = Math.floor((w * h) / 10000);
+        for (let i = 0; i < n; i++) particles.push(mkParticle());
+    }
+
+    function draw() {
+        ctx.clearRect(0, 0, w, h);
+        for (let i = particles.length - 1; i >= 0; i--) {
+            const p = particles[i];
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(255,255,255,' + p.alpha + ')';
+            ctx.fill();
+            p.x += p.dx; p.y += p.dy; p.alpha -= p.decay;
+            if (p.alpha <= 0 || p.y < -10) {
+                particles[i] = mkParticle();
+                particles[i].y = h + 5;
+                particles[i].alpha = rnd(0.05, 0.45);
+            }
+        }
+        requestAnimationFrame(draw);
+    }
+
+    resize(); init(); draw();
+    window.addEventListener('resize', function() { resize(); init(); });
+})();
+
+// SCROLL REVEAL
+const observer = new IntersectionObserver(function(entries) {
+    entries.forEach(function(entry, idx) {
+        if (entry.isIntersecting) {
+            entry.target.style.transitionDelay = (idx * 0.08) + 's';
+            entry.target.classList.add('visible');
+            observer.unobserve(entry.target);
+        }
+    });
+}, { threshold: 0.12 });
+
+document.querySelectorAll('.reveal, .step').forEach(function(el) { observer.observe(el); });
+
+// 3D CARD TILT (desktop only)
+if (window.innerWidth > 768) {
+    document.querySelectorAll('.feature-card').forEach(function(card) {
+        card.addEventListener('mousemove', function(e) {
+            const rect = card.getBoundingClientRect();
+            const cx = rect.left + rect.width / 2;
+            const cy = rect.top + rect.height / 2;
+            const rx = ((e.clientY - cy) / rect.height) * -8;
+            const ry = ((e.clientX - cx) / rect.width) * 8;
+            card.style.transform = 'perspective(800px) rotateX(' + rx + 'deg) rotateY(' + ry + 'deg) translateY(-8px)';
         });
-    </script>
+        card.addEventListener('mouseleave', function() {
+            card.style.transition = 'transform 0.5s ease, border-color 0.4s ease, box-shadow 0.4s ease';
+            card.style.transform = '';
+        });
+        card.addEventListener('mouseenter', function() {
+            card.style.transition = 'transform 0.1s ease, border-color 0.4s ease, box-shadow 0.4s ease';
+        });
+    });
+}
+<\/script>
+
 </body>
 </html>
