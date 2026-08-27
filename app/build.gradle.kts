@@ -101,4 +101,7 @@ dependencies {
 
   // Edge AI NLP (TensorFlow Lite Task Library)
   implementation("org.tensorflow:tensorflow-lite-task-text:0.4.4")
+  
+  // ML Kit for Intention NLP
+  implementation("com.google.mlkit:language-id:17.0.5")
 }
