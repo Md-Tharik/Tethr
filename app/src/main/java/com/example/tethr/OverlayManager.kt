@@ -55,6 +55,7 @@ class OverlayManager(private val context: Context) {
                 Log.e("TethrOverlay", "Error removing overlay: ${e.message}")
             }
             overlayView = null
+        }
         hideBarrier()
     }
 
@@ -132,7 +133,7 @@ class OverlayManager(private val context: Context) {
      * Simple pill overlay that shows active time and reel count.
      * No borders, no gradual washout, no touch interception.
      */
-    private inner class PillOverlayView(context: Context) : View(context) {
+    private class PillOverlayView(context: Context) : View(context) {
         private var activeTimeMs: Long = 0
 
         private val paintPill = Paint().apply {

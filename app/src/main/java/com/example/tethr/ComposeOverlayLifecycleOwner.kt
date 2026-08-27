@@ -7,12 +7,12 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleRegistry
 import androidx.lifecycle.ViewModelStore
 import androidx.lifecycle.ViewModelStoreOwner
-import androidx.lifecycle.ViewTreeLifecycleOwner
-import androidx.lifecycle.ViewTreeViewModelStoreOwner
+import androidx.lifecycle.setViewTreeLifecycleOwner
+import androidx.lifecycle.setViewTreeViewModelStoreOwner
 import androidx.savedstate.SavedStateRegistry
 import androidx.savedstate.SavedStateRegistryController
 import androidx.savedstate.SavedStateRegistryOwner
-import androidx.savedstate.ViewTreeSavedStateRegistryOwner
+import androidx.savedstate.setViewTreeSavedStateRegistryOwner
 
 class ComposeOverlayLifecycleOwner : SavedStateRegistryOwner, ViewModelStoreOwner {
     private var mLifecycleRegistry: LifecycleRegistry = LifecycleRegistry(this)
@@ -55,8 +55,8 @@ class ComposeOverlayLifecycleOwner : SavedStateRegistryOwner, ViewModelStoreOwne
     }
 
     fun attachToView(view: ComposeView) {
-        ViewTreeLifecycleOwner.set(view, this)
-        ViewTreeViewModelStoreOwner.set(view, this)
-        ViewTreeSavedStateRegistryOwner.set(view, this)
+        view.setViewTreeLifecycleOwner(this)
+        view.setViewTreeViewModelStoreOwner(this)
+        view.setViewTreeSavedStateRegistryOwner(this)
     }
 }
