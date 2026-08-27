@@ -12,11 +12,15 @@ import android.util.Log
 import android.view.Gravity
 import android.view.View
 import android.view.WindowManager
+import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.platform.ViewCompositionStrategy
 
 class OverlayManager(private val context: Context) {
     private val windowManager = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
     private var overlayView: PillOverlayView? = null
-    private var frictionView: View? = null
+    
+    private var barrierView: ComposeView? = null
+    private var lifecycleOwner: ComposeOverlayLifecycleOwner? = null
 
     fun showOverlay() {
         if (overlayView == null) {
@@ -51,74 +55,29 @@ class OverlayManager(private val context: Context) {
                 Log.e("TethrOverlay", "Error removing overlay: ${e.message}")
             }
             overlayView = null
-        }
-        hideMathQuiz()
+        hideBarrier()
     }
 
-    fun showMathQuiz() {
-        // Run on main thread just in case
+    fun showRandomBarrier() {
         android.os.Handler(android.os.Looper.getMainLooper()).post {
-            if (frictionView != null) return@post
+            if (barrierView != null) return@post
             
-            val layout = android.widget.LinearLayout(context).apply {
-                orientation = android.widget.LinearLayout.VERTICAL
-                setBackgroundColor(Color.parseColor("#FA000000")) // very dark solid
-                gravity = Gravity.CENTER
-                setPadding(64, 64, 64, 64)
-            }
+            lifecycleOwner = ComposeOverlayLifecycleOwner().apply { onCreate(); onStart(); onResume() }
             
-            val title = android.widget.TextView(context).apply {
-                text = "Cognitive Check"
-                setTextColor(Color.WHITE)
-                textSize = 24f
-                gravity = Gravity.CENTER
-            }
-            
-            val num1 = (10..99).random()
-            val num2 = (10..99).random()
-            val answer = num1 + num2
-            
-            val question = android.widget.TextView(context).apply {
-                text = "$num1 + $num2 = ?"
-                setTextColor(Color.WHITE)
-                textSize = 36f
-                gravity = Gravity.CENTER
-                setPadding(0, 32, 0, 32)
-            }
-            
-            val input = android.widget.EditText(context).apply {
-                setTextColor(Color.WHITE)
-                textSize = 24f
-                inputType = android.text.InputType.TYPE_CLASS_NUMBER
-                gravity = Gravity.CENTER
-                setBackgroundColor(Color.parseColor("#33FFFFFF"))
-                setPadding(32, 32, 32, 32)
-            }
-            
-            val btn = android.widget.Button(context).apply {
-                text = "Submit to Continue"
-                setBackgroundColor(Color.DKGRAY)
-                setTextColor(Color.WHITE)
-                setPadding(32, 32, 32, 32)
-                setOnClickListener {
-                    if (input.text.toString().trim() == answer.toString()) {
-                        hideMathQuiz()
-                    } else {
-                        input.error = "Incorrect"
+            val composeView = ComposeView(context).apply {
+                setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
+                setContent {
+                    val barrierType = (1..4).random()
+                    when (barrierType) {
+                        1 -> MathBarrierUI(onUnlock = { hideBarrier() })
+                        2 -> XoBarrierUI(onUnlock = { hideBarrier() })
+                        3 -> IntentionBarrierUI(onUnlock = { hideBarrier() })
+                        4 -> BreathingBarrierUI(onUnlock = { hideBarrier() })
                     }
                 }
             }
             
-            val spacer = android.widget.Space(context)
-            spacer.layoutParams = android.widget.LinearLayout.LayoutParams(1, 32)
-            
-            layout.addView(title)
-            layout.addView(question)
-            layout.addView(input)
-            layout.addView(spacer)
-            layout.addView(btn)
-            
-            frictionView = layout
+            lifecycleOwner?.attachToView(composeView)
             
             val params = WindowManager.LayoutParams(
                 WindowManager.LayoutParams.MATCH_PARENT,
@@ -130,18 +89,26 @@ class OverlayManager(private val context: Context) {
                 0, // 0 flags means it can receive focus (keyboard) and blocks touches behind it
                 PixelFormat.TRANSLUCENT
             )
+            
             try {
-                windowManager.addView(frictionView, params)
+                windowManager.addView(composeView, params)
+                barrierView = composeView
             } catch (e: Exception) {
-                Log.e("TethrOverlay", "Error showing math quiz: ${e.message}")
+                Log.e("TethrOverlay", "Error showing barrier: \${e.message}")
             }
         }
     }
 
-    fun hideMathQuiz() {
-        if (frictionView != null) {
-            try { windowManager.removeView(frictionView) } catch (e: Exception) {}
-            frictionView = null
+    fun hideBarrier() {
+        if (barrierView != null) {
+            try {
+                windowManager.removeView(barrierView)
+                lifecycleOwner?.onPause()
+                lifecycleOwner?.onStop()
+                lifecycleOwner?.onDestroy()
+            } catch (e: Exception) {}
+            barrierView = null
+            lifecycleOwner = null
         }
     }
 
