@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tethr | Activate Hardware Grayscale</title>
+    <style>
+        :root {
+            --bg-color: #000000;
+            --card-bg: #111111;
+            --border-color: #333333;
+            --text-primary: #ffffff;
+            --text-secondary: #aaaaaa;
+            --accent: #ffffff;
+            --success: #34C759;
+            --error: #FF3B30;
+        }
+
+        body {
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 480px;
+            width: 90%;
+            padding: 40px;
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 24px;
+            text-align: center;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+        }
+
+        .logo {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            border: 2px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 24px;
+            background: linear-gradient(145deg, #1a1a1a, #0a0a0a);
+        }
+
+        .logo svg {
+            width: 40px;
+            height: 40px;
+            fill: none;
+            stroke: var(--accent);
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        h1 {
+            font-size: 24px;
+            margin: 0 0 12px;
+            font-weight: 700;
+        }
+
+        p {
+            color: var(--text-secondary);
+            font-size: 15px;
+            line-height: 1.5;
+            margin: 0 0 32px;
+        }
+
+        .btn {
+            background-color: var(--accent);
+            color: var(--bg-color);
+            border: none;
+            border-radius: 30px;
+            padding: 16px 32px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            transition: transform 0.1s, opacity 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+        }
+
+        .btn:hover:not(:disabled) {
+            opacity: 0.9;
+        }
+
+        .btn:active:not(:disabled) {
+            transform: scale(0.98);
+        }
+
+        .btn:disabled {
+            background-color: var(--border-color);
+            color: var(--text-secondary);
+            cursor: not-allowed;
+        }
+
+        .status-box {
+            margin-top: 32px;
+            padding: 16px;
+            border-radius: 12px;
+            background-color: rgba(255,255,255,0.05);
+            text-align: left;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            font-size: 13px;
+            display: none;
+        }
+
+        .status-line {
+            margin: 4px 0;
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+        }
+
+        .indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-top: 6px;
+            flex-shrink: 0;
+        }
+        
+        .indicator.waiting { background-color: var(--text-secondary); }
+        .indicator.success { background-color: var(--success); }
+        .indicator.error { background-color: var(--error); }
+        .indicator.spin {
+            border: 2px solid var(--border-color);
+            border-top-color: var(--accent);
+            background-color: transparent;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+
+        /* The App Dropdown (Important for multiple apps) */
+        .app-selector {
+            margin-bottom: 24px;
+            text-align: left;
+        }
+
+        .app-selector label {
+            display: block;
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .app-selector select {
+            width: 100%;
+            padding: 12px 16px;
+            border-radius: 12px;
+            background-color: var(--bg-color);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            font-size: 15px;
+            outline: none;
+            appearance: none;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Load the bundled Ya-WebADB library -->
+    <script src="/adb_source.js"></script>
+
+    <div class="container">
+        <div class="logo">
+            <svg viewBox="0 0 24 24">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            </svg>
+        </div>
+        
+        <h1>Connect to Tethr</h1>
+        <p>This will securely grant the SECURE_SETTINGS permission required for true hardware grayscale.</p>
+        
+        <div class="app-selector">
+            <label for="appId">Target Application ID</label>
+            <select id="appId">
+                <option value="ai.tethr.app">ai.tethr.app (Tethr Official)</option>
+                <option value="ai.tethr.app.debug">ai.tethr.app.debug (Development)</option>
+                <!-- Add other variants if they exist -->
+            </select>
+        </div>
+
+        <button id="connectBtn" class="btn">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+            </svg>
+            Connect via WebUSB
+        </button>
+
+        <div id="statusBox" class="status-box"></div>
+    </div>
+
+    <script>
+        const connectBtn = document.getElementById('connectBtn');
+        const statusBox = document.getElementById('statusBox');
+        const appIdSelect = document.getElementById('appId');
+        let adbInstance = null;
+
+        function logStatus(message, type = 'waiting') {
+            statusBox.style.display = 'block';
+            const line = document.createElement('div');
+            line.className = 'status-line';
+            
+            const indicator = document.createElement('div');
+            indicator.className = `indicator ${type}`;
+            
+            const text = document.createElement('span');
+            text.textContent = message;
+            
+            line.appendChild(indicator);
+            line.appendChild(text);
+            statusBox.appendChild(line);
+            
+            // Scroll to bottom
+            statusBox.scrollTop = statusBox.scrollHeight;
+        }
+
+        async function connect() {
+            // Reset UI
+            statusBox.innerHTML = '';
+            connectBtn.disabled = true;
+            
+            try {
+                // 1. Check if browser supports WebUSB
+                if (!navigator.usb) {
+                    throw new Error("WebUSB is not supported in this browser. Please use Google Chrome or Microsoft Edge.");
+                }
+
+                logStatus("Requesting USB device access...", "spin");
+
+                // 2. Request USB Device via Adb (Ya-WebADB)
+                // This will trigger the browser's native device picker dialog
+                adbInstance = await Adb.open("WebUSB");
+
+                if (!adbInstance) {
+                    throw new Error("No device selected or connection failed.");
+                }
+                
+                // Remove the spinner from the first log
+                statusBox.lastChild.querySelector('.indicator').className = 'indicator success';
+                logStatus("Device connected successfully.", "success");
+
+                // 3. Connect to the ADB daemon on the device
+                logStatus("Connecting to ADB daemon (Check your phone screen for authorization prompt)...", "spin");
+                
+                await adbInstance.connectAdb("host::");
+                
+                statusBox.lastChild.querySelector('.indicator').className = 'indicator success';
+                logStatus("ADB daemon authorized.", "success");
+
+                // 4. Grant the permission
+                const targetAppId = appIdSelect.value;
+                const command = `pm grant ${targetAppId} android.permission.WRITE_SECURE_SETTINGS`;
+                
+                logStatus(`Executing: ${command}`, "spin");
+                
+                // Open a shell stream
+                const shell = await adbInstance.open('shell:' + command);
+                
+                // Read the response (if any). Usually pm grant outputs nothing on success.
+                const r = await shell.receive();
+                const decoder = new TextDecoder('utf-8');
+                const responseText = decoder.decode(r.data);
+                
+                statusBox.lastChild.querySelector('.indicator').className = 'indicator success';
+
+                if (responseText && responseText.toLowerCase().includes('error')) {
+                    throw new Error(responseText);
+                }
+
+                logStatus("✅ Permission Granted Successfully!", "success");
+                logStatus("You can now disconnect your phone and return to the Tethr app.", "success");
+                
+                connectBtn.textContent = "Granted!";
+                
+            } catch (error) {
+                console.error(error);
+                
+                if (statusBox.lastChild) {
+                    const lastIndicator = statusBox.lastChild.querySelector('.indicator');
+                    if (lastIndicator && lastIndicator.classList.contains('spin')) {
+                        lastIndicator.className = 'indicator error';
+                    }
+                }
+                
+                logStatus(`Error: ${error.message}`, "error");
+                connectBtn.disabled = false;
+                
+                // Reset button text if it failed before finishing
+                if (connectBtn.textContent !== "Granted!") {
+                    connectBtn.innerHTML = `
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+                            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+                        </svg>
+                        Retry Connection
+                    `;
+                }
+            } finally {
+                // Cleanup: Close the ADB connection
+                if (adbInstance) {
+                    try {
+                        await adbInstance.close();
+                    } catch (e) {
+                        console.error("Error closing ADB connection", e);
+                    }
+                }
+            }
+        }
+
+        connectBtn.addEventListener('click', connect);
+    </script>
+</body>
+</html>

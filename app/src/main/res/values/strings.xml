@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">Tethr</string>
+    <string name="accessibility_service_description">Tethr uses Accessibility Services to monitor feed usage and apply adaptive friction to combat doomscrolling.</string>
+</resources>
