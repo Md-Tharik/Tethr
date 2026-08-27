@@ -56,11 +56,7 @@ class TethrAccessibilityService : AccessibilityService() {
                 
                 // Get user-configured thresholds for normal mode
                 val tier2StartMins = sharedPrefs.getInt("TIER2_START", 5)
-                val tier3StartMins = sharedPrefs.getInt("TIER3_START", 15)
-                
                 val grayscaleThresholdMs = if (isDemoMode) 15_000L else tier2StartMins * 60_000L
-                val firstPopupThresholdMs = if (isDemoMode) 20_000L else tier3StartMins * 60_000L
-                val popupIntervalMs = if (isDemoMode) 5_000L else 5L * 60_000L // 5 seconds in demo, 5 mins in normal
                 
                 // 1. Grayscale Check
                 if (activeTimeMs >= grayscaleThresholdMs && !isGrayscaleActive) {
@@ -70,14 +66,24 @@ class TethrAccessibilityService : AccessibilityService() {
                 }
 
                 // 2. Popup Check
-                if (activeTimeMs >= firstPopupThresholdMs) {
-                    val timeSinceFirstPopup = activeTimeMs - firstPopupThresholdMs
-                    val expectedPopups = (timeSinceFirstPopup / popupIntervalMs).toInt() + 1
+                if (activeTimeMs >= grayscaleThresholdMs) {
+                    val timeSinceGrayscale = activeTimeMs - grayscaleThresholdMs
+                    val expectedPopups = if (isDemoMode) {
+                        (timeSinceGrayscale / 5_000L).toInt()
+                    } else {
+                        when {
+                            timeSinceGrayscale < 300_000L -> 0 // Before 5 mins
+                            timeSinceGrayscale < 450_000L -> 1 // 5 mins -> 1st popup
+                            timeSinceGrayscale < 510_000L -> 2 // +2.5 mins -> 2nd popup
+                            timeSinceGrayscale < 540_000L -> 3 // +1 min -> 3rd popup
+                            else -> 4 + ((timeSinceGrayscale - 540_000L) / 30_000L).toInt() // +30s repeating
+                        }
+                    }
                     
                     if (expectedPopups > popupsShown) {
                         popupsShown = expectedPopups
-                        overlayManager?.showMathQuiz()
-                        Log.d(TAG, "Showing Math Quiz popup #$popupsShown")
+                        overlayManager?.showRandomBarrier()
+                        Log.d(TAG, "Showing barrier popup #$popupsShown")
                     }
                 }
 
