@@ -23,7 +23,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.google.mlkit.nl.languageid.LanguageIdentification
+
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -38,73 +38,87 @@ fun MathBarrierUI(onUnlock: () -> Unit) {
     val shakeOffset = remember { Animatable(0f) }
     val coroutineScope = rememberCoroutineScope()
 
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xF2000000)) // Translucent black
-            .padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+            .background(Color(0xE6000000)), // Translucent black
+        contentAlignment = Alignment.Center
     ) {
-        Text("Cognitive Check", color = Color.White, fontSize = 24.sp, modifier = Modifier.padding(bottom = 32.dp))
-        Text("$num1 + $num2 = ?", color = Color.White, fontSize = 48.sp, modifier = Modifier.padding(bottom = 32.dp))
-
-        OutlinedTextField(
-            value = answer,
-            onValueChange = { answer = it },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedTextColor = Color.White,
-                unfocusedTextColor = Color.White,
-                focusedBorderColor = Color.White,
-                unfocusedBorderColor = Color.Gray
-            ),
-            singleLine = true,
+        Column(
             modifier = Modifier
-                .fillMaxWidth(0.6f)
-                .padding(bottom = 32.dp)
-                .graphicsLayer { translationX = shakeOffset.value }
-        )
+                .width(320.dp)
+                .background(Color(0xFF1C1C1E), androidx.compose.foundation.shape.RoundedCornerShape(16.dp))
+                .padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Text("Quick Math", color = Color.LightGray, fontSize = 16.sp, fontWeight = FontWeight.Medium, modifier = Modifier.padding(bottom = 16.dp))
+            Text("$num1 + $num2 = ?", color = Color.White, fontSize = 40.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 24.dp))
 
-        Button(
-            onClick = {
-                val sum = num1 + num2
-                if (answer.trim() == sum.toString()) {
-                    Toast.makeText(context, "Unlocked", Toast.LENGTH_SHORT).show()
-                    onUnlock()
-                } else {
-                    coroutineScope.launch {
-                        shakeOffset.animateTo(20f, tween(50))
-                        shakeOffset.animateTo(-20f, tween(50))
-                        shakeOffset.animateTo(20f, tween(50))
-                        shakeOffset.animateTo(-20f, tween(50))
-                        shakeOffset.animateTo(0f, tween(50))
-                    }
-                    num1 = (10..99).random()
-                    num2 = (10..99).random()
-                    answer = ""
-                    
-                    val vibrator = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
-                        val vibratorManager = context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
-                        vibratorManager.defaultVibrator
+            OutlinedTextField(
+                value = answer,
+                onValueChange = { answer = it },
+                placeholder = { Text("Type your answer", color = Color.Gray) },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedTextColor = Color.White,
+                    unfocusedTextColor = Color.White,
+                    focusedBorderColor = Color.Transparent,
+                    unfocusedBorderColor = Color.Transparent,
+                    focusedContainerColor = Color(0xFF2C2C2E),
+                    unfocusedContainerColor = Color(0xFF2C2C2E),
+                ),
+                singleLine = true,
+                shape = androidx.compose.foundation.shape.RoundedCornerShape(8.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 16.dp)
+                    .graphicsLayer { translationX = shakeOffset.value }
+            )
+
+            Button(
+                onClick = {
+                    val sum = num1 + num2
+                    if (answer.trim() == sum.toString()) {
+                        Toast.makeText(context, "Unlocked", Toast.LENGTH_SHORT).show()
+                        onUnlock()
                     } else {
-                        @Suppress("DEPRECATION")
-                        context.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
-                    }
-                    if (vibrator.hasVibrator()) {
-                        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-                            vibrator.vibrate(VibrationEffect.createOneShot(200, VibrationEffect.DEFAULT_AMPLITUDE))
+                        coroutineScope.launch {
+                            shakeOffset.animateTo(20f, tween(50))
+                            shakeOffset.animateTo(-20f, tween(50))
+                            shakeOffset.animateTo(20f, tween(50))
+                            shakeOffset.animateTo(-20f, tween(50))
+                            shakeOffset.animateTo(0f, tween(50))
+                        }
+                        num1 = (10..99).random()
+                        num2 = (10..99).random()
+                        answer = ""
+                        
+                        val vibrator = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+                            val vibratorManager = context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
+                            vibratorManager.defaultVibrator
                         } else {
                             @Suppress("DEPRECATION")
-                            vibrator.vibrate(200)
+                            context.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
+                        }
+                        if (vibrator.hasVibrator()) {
+                            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                                vibrator.vibrate(VibrationEffect.createOneShot(200, VibrationEffect.DEFAULT_AMPLITUDE))
+                            } else {
+                                @Suppress("DEPRECATION")
+                                vibrator.vibrate(200)
+                            }
                         }
                     }
-                }
-            },
-            modifier = Modifier.fillMaxWidth(0.6f),
-            colors = ButtonDefaults.buttonColors(containerColor = Color.DarkGray)
-        ) {
-            Text("Unlock", fontSize = 18.sp, color = Color.White)
+                },
+                modifier = Modifier.fillMaxWidth().height(50.dp),
+                shape = androidx.compose.foundation.shape.RoundedCornerShape(8.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Color.White)
+            ) {
+                Text("Submit", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.Black)
+            }
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            Text("Solve to continue scrolling", color = Color.Gray, fontSize = 12.sp)
         }
     }
 }
@@ -185,140 +199,109 @@ fun XoBarrierUI(onUnlock: () -> Unit) {
         }
     }
 
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xF2000000))
-            .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+            .background(Color(0xE6000000)),
+        contentAlignment = Alignment.Center
     ) {
-        Text("Tic-Tac-Toe Challenge", color = Color.White, fontSize = 24.sp, modifier = Modifier.padding(bottom = 16.dp))
-        Text("Win or Draw to Unlock", color = Color.Gray, fontSize = 16.sp, modifier = Modifier.padding(bottom = 32.dp))
-
         Column(
-            modifier = Modifier.width(300.dp).height(300.dp),
-            verticalArrangement = Arrangement.SpaceEvenly
+            modifier = Modifier
+                .width(320.dp)
+                .background(Color(0xFF1C1C1E), androidx.compose.foundation.shape.RoundedCornerShape(16.dp))
+                .padding(32.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            for (i in 0..2) {
-                Row(
-                    modifier = Modifier.fillMaxWidth().weight(1f),
-                    horizontalArrangement = Arrangement.SpaceEvenly
-                ) {
-                    for (j in 0..2) {
-                        val index = i * 3 + j
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .fillMaxHeight()
-                                .padding(4.dp)
-                                .background(Color.DarkGray)
-                                .clickable {
-                                    if (isUserTurn && board[index] == CellState.EMPTY) {
-                                        val newBoard = board.clone()
-                                        newBoard[index] = CellState.X
-                                        board = newBoard
-                                        
-                                        val winner = checkWinner(board)
-                                        if (winner == CellState.X) {
-                                            Toast.makeText(context, "You Won! Unlocked", Toast.LENGTH_SHORT).show()
-                                            onUnlock()
-                                        } else if (isBoardFull(board)) {
-                                            Toast.makeText(context, "Draw - Unlocked", Toast.LENGTH_SHORT).show()
-                                            onUnlock()
-                                        } else {
-                                            isUserTurn = false
+            Text("Tic-Tac-Toe", color = Color.LightGray, fontSize = 16.sp, fontWeight = FontWeight.Medium, modifier = Modifier.padding(bottom = 24.dp))
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .aspectRatio(1f)
+                    .background(Color(0xFF333333)), // border color
+                verticalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
+                for (i in 0..2) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().weight(1f),
+                        horizontalArrangement = Arrangement.spacedBy(2.dp)
+                    ) {
+                        for (j in 0..2) {
+                            val index = i * 3 + j
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .fillMaxHeight()
+                                    .background(Color(0xFF1C1C1E))
+                                    .clickable {
+                                        if (isUserTurn && board[index] == CellState.EMPTY) {
+                                            val newBoard = board.clone()
+                                            newBoard[index] = CellState.X
+                                            board = newBoard
+                                            
+                                            val winner = checkWinner(board)
+                                            if (winner == CellState.X) {
+                                                Toast.makeText(context, "You Won! Unlocked", Toast.LENGTH_SHORT).show()
+                                                onUnlock()
+                                            } else if (isBoardFull(board)) {
+                                                Toast.makeText(context, "Draw - Unlocked", Toast.LENGTH_SHORT).show()
+                                                onUnlock()
+                                            } else {
+                                                isUserTurn = false
+                                            }
+                                        }
+                                    },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                when (board[index]) {
+                                    CellState.X -> {
+                                        androidx.compose.foundation.Canvas(modifier = Modifier.size(56.dp)) {
+                                            drawLine(
+                                                color = Color.White,
+                                                start = androidx.compose.ui.geometry.Offset(0f, 0f),
+                                                end = androidx.compose.ui.geometry.Offset(size.width, size.height),
+                                                strokeWidth = 10f,
+                                                cap = androidx.compose.ui.graphics.StrokeCap.Round
+                                            )
+                                            drawLine(
+                                                color = Color.White,
+                                                start = androidx.compose.ui.geometry.Offset(size.width, 0f),
+                                                end = androidx.compose.ui.geometry.Offset(0f, size.height),
+                                                strokeWidth = 10f,
+                                                cap = androidx.compose.ui.graphics.StrokeCap.Round
+                                            )
                                         }
                                     }
-                                },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = when (board[index]) {
-                                    CellState.X -> "X"
-                                    CellState.O -> "O"
-                                    CellState.EMPTY -> ""
-                                },
-                                color = if (board[index] == CellState.X) Color.Cyan else Color.Red,
-                                fontSize = 48.sp,
-                                fontWeight = FontWeight.Bold
-                            )
+                                    CellState.O -> {
+                                        androidx.compose.foundation.Canvas(modifier = Modifier.size(56.dp)) {
+                                            drawCircle(
+                                                color = Color(0xFF666666),
+                                                style = androidx.compose.ui.graphics.drawscope.Stroke(
+                                                    width = 10f,
+                                                    cap = androidx.compose.ui.graphics.StrokeCap.Round
+                                                )
+                                            )
+                                        }
+                                    }
+                                    CellState.EMPTY -> {}
+                                }
+                            }
                         }
                     }
                 }
             }
+            
+            Spacer(modifier = Modifier.height(24.dp))
+            Text(
+                text = if (!isUserTurn) "Bot is thinking..." else "Win or Draw to Unlock",
+                color = Color.Gray,
+                fontSize = 12.sp
+            )
         }
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun IntentionBarrierUI(onUnlock: () -> Unit) {
-    val context = LocalContext.current
-    var intention by remember { mutableStateOf("") }
-    var isLoading by remember { mutableStateOf(false) }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color(0xF2000000))
-            .padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Text("Mindful Intention", color = Color.White, fontSize = 24.sp, modifier = Modifier.padding(bottom = 16.dp))
-        Text("Why do you need to open this app right now?", color = Color.White, fontSize = 18.sp, modifier = Modifier.padding(bottom = 32.dp))
-
-        OutlinedTextField(
-            value = intention,
-            onValueChange = { intention = it },
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedTextColor = Color.White,
-                unfocusedTextColor = Color.White,
-                focusedBorderColor = Color.White,
-                unfocusedBorderColor = Color.Gray
-            ),
-            singleLine = false,
-            modifier = Modifier.fillMaxWidth().height(150.dp).padding(bottom = 32.dp)
-        )
-
-        Button(
-            onClick = {
-                if (intention.trim().length < 5) {
-                    Toast.makeText(context, "Please be more specific.", Toast.LENGTH_SHORT).show()
-                    return@Button
-                }
-
-                isLoading = true
-                val languageIdentifier = LanguageIdentification.getClient()
-                languageIdentifier.identifyLanguage(intention.trim())
-                    .addOnSuccessListener { languageCode ->
-                        isLoading = false
-                        if (languageCode == "und") {
-                            Toast.makeText(context, "Please state a deliberate, real intent.", Toast.LENGTH_SHORT).show()
-                        } else {
-                            Toast.makeText(context, "Intent accepted.", Toast.LENGTH_SHORT).show()
-                            onUnlock()
-                        }
-                    }
-                    .addOnFailureListener {
-                        isLoading = false
-                        Toast.makeText(context, "Intent accepted.", Toast.LENGTH_SHORT).show()
-                        onUnlock()
-                    }
-            },
-            modifier = Modifier.fillMaxWidth(0.6f),
-            enabled = !isLoading,
-            colors = ButtonDefaults.buttonColors(containerColor = Color.DarkGray)
-        ) {
-            if (isLoading) {
-                CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
-            } else {
-                Text("Submit", fontSize = 18.sp, color = Color.White)
-            }
-        }
-    }
-}
 
 @Composable
 fun BreathingBarrierUI(onUnlock: () -> Unit) {
@@ -329,16 +312,16 @@ fun BreathingBarrierUI(onUnlock: () -> Unit) {
 
     LaunchedEffect(Unit) {
         delay(1000)
-        for (i in 1..2) { // 2 cycles to save time in total, or adjust as needed
+        for (i in 1..1) {
             cycle = i
             
             // Inhale (4s)
             phase = "Inhale..."
             targetScale.animateTo(2.5f, tween(4000, easing = LinearEasing))
             
-            // Hold (10s)
-            phase = "Hold... (10s)"
-            var remaining = 10
+            // Hold (4s)
+            phase = "Hold... (4s)"
+            var remaining = 4
             while(remaining > 0) {
                 phase = "Hold... (${remaining}s)"
                 delay(1000)
@@ -353,27 +336,38 @@ fun BreathingBarrierUI(onUnlock: () -> Unit) {
         onUnlock()
     }
 
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xF2000000))
-            .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.SpaceEvenly
+            .background(Color(0xE6000000)),
+        contentAlignment = Alignment.Center
     ) {
-        Text("Mindful Breathing", color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Bold)
-        
-        Box(contentAlignment = Alignment.Center, modifier = Modifier.size(300.dp)) {
-            Box(
-                modifier = Modifier
-                    .size(100.dp)
-                    .scale(targetScale.value)
-                    .background(Color.Cyan.copy(alpha = 0.5f), CircleShape)
-            )
+        Column(
+            modifier = Modifier
+                .width(320.dp)
+                .background(Color(0xFF1C1C1E), androidx.compose.foundation.shape.RoundedCornerShape(16.dp))
+                .padding(32.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Text("Mindful Breathing", color = Color.LightGray, fontSize = 16.sp, fontWeight = FontWeight.Medium, modifier = Modifier.padding(bottom = 24.dp))
             
-            Text(phase, color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
-        }
+            Box(contentAlignment = Alignment.Center, modifier = Modifier.size(200.dp)) {
+                androidx.compose.foundation.Canvas(modifier = Modifier.size(200.dp)) {
+                    drawCircle(
+                        color = Color(0xFF333333),
+                        style = androidx.compose.ui.graphics.drawscope.Stroke(width = 8.dp.toPx())
+                    )
+                }
 
-        Text("Cycle $cycle / 2", color = Color.Gray, fontSize = 18.sp)
+                Box(
+                    modifier = Modifier
+                        .size(100.dp)
+                        .scale(targetScale.value)
+                        .background(Color.White.copy(alpha = 0.2f), CircleShape)
+                )
+                
+                Text(phase, color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Medium)
+            }
+        }
     }
 }

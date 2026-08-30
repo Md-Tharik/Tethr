@@ -22,6 +22,9 @@ class OverlayManager(private val context: Context) {
     private var barrierView: ComposeView? = null
     private var lifecycleOwner: ComposeOverlayLifecycleOwner? = null
 
+    val isBarrierShowing: Boolean
+        get() = barrierView != null
+
     fun showOverlay() {
         if (overlayView == null) {
             overlayView = PillOverlayView(context)
@@ -59,7 +62,7 @@ class OverlayManager(private val context: Context) {
         hideBarrier()
     }
 
-    fun showRandomBarrier() {
+    fun showBarrier(barrierIndex: Int) {
         android.os.Handler(android.os.Looper.getMainLooper()).post {
             if (barrierView != null) return@post
             
@@ -68,12 +71,11 @@ class OverlayManager(private val context: Context) {
             val composeView = ComposeView(context).apply {
                 setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
                 setContent {
-                    val barrierType = (1..4).random()
+                    val barrierType = (barrierIndex - 1) % 3
                     when (barrierType) {
-                        1 -> MathBarrierUI(onUnlock = { hideBarrier() })
-                        2 -> XoBarrierUI(onUnlock = { hideBarrier() })
-                        3 -> IntentionBarrierUI(onUnlock = { hideBarrier() })
-                        4 -> BreathingBarrierUI(onUnlock = { hideBarrier() })
+                        0 -> MathBarrierUI(onUnlock = { hideBarrier() })
+                        1 -> XoBarrierUI(onUnlock = { hideBarrier() })
+                        2 -> BreathingBarrierUI(onUnlock = { hideBarrier() })
                     }
                 }
             }
@@ -160,12 +162,12 @@ class OverlayManager(private val context: Context) {
             // Only draw the pill — nothing else. No borders, no gray wash.
             val cx = width / 2f
             val cy = 100f
-            val rx = 160f
+            val rx = 220f
             val ry = 50f
 
             val minutes = activeTimeMs / 60000
             val seconds = (activeTimeMs % 60000) / 1000
-            val timeString = String.format("%02d:%02d", minutes, seconds)
+            val timeString = String.format("• Active: %02d:%02d", minutes, seconds)
 
             canvas.drawRoundRect(cx - rx, cy - ry, cx + rx, cy + ry, ry, ry, paintPill)
             canvas.drawText(timeString, cx, cy + 12f, paintText)

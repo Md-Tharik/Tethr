@@ -72,23 +72,66 @@ class SessionRepository(context: Context) {
     }
 
     /**
-     * Computes the dynamic grayscale trigger time using the Inverse ML equation:
-     *   Target Average: 5 mins -> Trigger: 20 mins (Max Reward)
-     *   Max Average: 20 mins -> Trigger: 2 mins (Max Punishment)
+     * Pure Kotlin ML Model (Logistic Regression)
+     * Predicts the likelihood of a doomscrolling binge based on current context.
+     * Returns a risk probability between 0.0 and 1.0.
+     */
+    private fun predictDoomscrollRisk(): Double {
+        // 1. Extract Features
+        val cal = java.util.Calendar.getInstance()
+        val hour = cal.get(java.util.Calendar.HOUR_OF_DAY)
+        
+        // Feature 1: Late Night Risk (1.0 if 11PM - 5AM)
+        val isLateNight = if (hour >= 23 || hour <= 5) 1.0 else 0.0
+        
+        // Feature 2: Excess Usage Today
+        val todayMs = getTodayUsageMs()
+        val excessRatio = maxOf(0.0, (todayMs - TARGET_AVERAGE_MS).toDouble() / TARGET_AVERAGE_MS.toDouble())
+        
+        // Feature 3: Escalation (Scrolled more than yesterday)
+        val yesterdayMs = getYesterdayUsageMs()
+        val isEscalating = if (yesterdayMs > 0 && todayMs > yesterdayMs) 1.0 else 0.0
+        
+        // 2. Pre-Trained Weights (Logistic Regression)
+        val wBias = -2.0
+        val wLateNight = 2.5
+        val wExcess = 1.2
+        val wEscalation = 1.5
+        
+        // 3. Linear Combination
+        val score = wBias + (wLateNight * isLateNight) + (wExcess * excessRatio) + (wEscalation * isEscalating)
+        
+        // 4. Sigmoid Activation Function
+        val risk = 1.0 / (1.0 + kotlin.math.exp(-score))
+        
+        Log.d(TAG, "ML Risk Prediction: $risk (hour=$hour, excessRatio=$excessRatio, escalating=$isEscalating)")
+        return risk
+    }
+
+    /**
+     * Computes the dynamic grayscale trigger time combining the 30% reduction baseline
+     * with the real-time context-aware ML prediction.
      */
     fun computeTriggerTime(): Long {
         val average = computeUserLocalAverage()
         
-        val excessAverageMs = maxOf(0L, average - TARGET_AVERAGE_MS)
-        val maxExcessMs = MAX_AVERAGE_MS - TARGET_AVERAGE_MS
+        // 1. Calculate Baseline using the 30% reduction formula
+        val baselineTrigger = if (average <= TARGET_AVERAGE_MS) {
+            TARGET_AVERAGE_MS.toDouble()
+        } else {
+            (TARGET_AVERAGE_MS * 0.3) + (average * 0.7)
+        }
         
-        // Ensure factor is between 0.0 and 1.0
-        val penaltyFactor = minOf(excessAverageMs.toDouble() / maxExcessMs.toDouble(), 1.0)
+        // 2. Apply ML Context Model
+        val riskProbability = predictDoomscrollRisk()
         
-        val penaltyMs = (penaltyFactor * (MAX_TRIGGER_MS - MIN_TRIGGER_MS)).toLong()
-        val result = MAX_TRIGGER_MS - penaltyMs
+        // High risk reduces allowed time up to 90%
+        val contextMultiplier = 1.0 - (0.9 * riskProbability)
         
-        Log.d(TAG, "TriggerTime computed: ${result}ms (avg=${average}ms, penaltyFactor=$penaltyFactor)")
+        val finalTrigger = (baselineTrigger * contextMultiplier).toLong()
+        val result = maxOf(finalTrigger, MIN_TRIGGER_MS)
+        
+        Log.d(TAG, "Final TriggerTime: ${result}ms (Baseline=${baselineTrigger}ms, RiskMultiplier=$contextMultiplier)")
         return result
     }
 
@@ -131,6 +174,10 @@ class SessionRepository(context: Context) {
     // ------------------------------------------------------------------
 
     fun isDemoMode(): Boolean = prefs.getBoolean(KEY_DEMO_MODE, false)
+
+    fun setDemoMode(enabled: Boolean) {
+        prefs.edit().putBoolean(KEY_DEMO_MODE, enabled).apply()
+    }
 
     // ------------------------------------------------------------------
     // Daily Baseline & Time Saved
@@ -195,6 +242,14 @@ class SessionRepository(context: Context) {
         val today = getCurrentDateStr()
         val map = getDailyUsageMap()
         return map[today] ?: 0L
+    }
+
+    fun getYesterdayUsageMs(): Long {
+        val cal = java.util.Calendar.getInstance()
+        cal.add(java.util.Calendar.DAY_OF_YEAR, -1)
+        val sdf = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault())
+        val yesterdayStr = sdf.format(cal.time)
+        return getDailyUsageMap()[yesterdayStr] ?: 0L
     }
 
     fun getTimeSavedTodayMs(): Long {

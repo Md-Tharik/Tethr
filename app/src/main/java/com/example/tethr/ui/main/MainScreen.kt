@@ -66,10 +66,7 @@ fun MainScreen(
     var showLaptopDialog by remember { mutableStateOf(false) }
     var showInAppSetup by remember { mutableStateOf(false) }
 
-    var isDemoMode by remember {
-        mutableStateOf(context.getSharedPreferences("TethrPrefs", Context.MODE_PRIVATE)
-            .getBoolean("DEMO_MODE", false))
-    }
+    var isDemoMode by remember { mutableStateOf(repo.isDemoMode()) }
     var isQuizzesEnabled by remember {
         mutableStateOf(context.getSharedPreferences("TethrPrefs", Context.MODE_PRIVATE)
             .getBoolean("ENABLE_QUIZZES", true))
@@ -92,7 +89,7 @@ fun MainScreen(
         
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
             val channel = android.app.NotificationChannel(
-                "tethr_setup",
+                "tethr_setup_v2",
                 "Tethr Setup",
                 android.app.NotificationManager.IMPORTANCE_HIGH
             )
@@ -120,13 +117,15 @@ fun MainScreen(
             pendingIntent
         ).addRemoteInput(remoteInput).build()
 
-        val builder = androidx.core.app.NotificationCompat.Builder(context, "tethr_setup")
+        val builder = androidx.core.app.NotificationCompat.Builder(context, "tethr_setup_v2")
             .setSmallIcon(android.R.drawable.ic_dialog_info)
             .setContentTitle("Tethr Pairing Request")
             .setContentText("Enter the Pairing Port and 6-digit code")
             .addAction(action)
             .setOngoing(true)
             .setAutoCancel(false)
+            .setPriority(androidx.core.app.NotificationCompat.PRIORITY_HIGH)
+            .setDefaults(androidx.core.app.NotificationCompat.DEFAULT_ALL)
 
         notificationManager.notify(com.example.tethr.adb.AdbPairingReceiver.NOTIFICATION_ID, builder.build())
         showInAppSetup = false
@@ -179,7 +178,7 @@ fun MainScreen(
             Spacer(Modifier.height(28.dp))
 
             // ── Time Reclaimed ────────────────────────────────────────────
-            if (!hasBaseline && !isDemoMode) {
+            if (!hasBaseline && !BuildConfig.DEBUG) {
                 CalibratingCard()
                 Spacer(Modifier.height(16.dp))
             } else if (timeSavedTodayMs > 0L) {
@@ -258,16 +257,16 @@ fun MainScreen(
             Spacer(Modifier.height(24.dp))
 
             if (BuildConfig.DEBUG) {
-                // â”€â”€ Demo Mode â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+                // ── Demo Mode Toggle ──────────────────────────────────────────────
                 DemoModeCard(
                     isDemoMode = isDemoMode,
                     onToggle = { checked ->
                         isDemoMode = checked
-                        context.getSharedPreferences("TethrPrefs", Context.MODE_PRIVATE)
-                            .edit().putBoolean("DEMO_MODE", checked).apply()
+                        repo.setDemoMode(checked)
                     }
                 )
-
+                
                 Spacer(Modifier.height(12.dp))
 
                 // â”€â”€ Math Quiz Toggle â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -328,15 +327,17 @@ fun MainScreen(
                     Column {
                         Text("Because this app uses hardware-level Grayscale, Android requires a one-time secure permission.", color = TethrGray400)
                         Spacer(Modifier.height(8.dp))
-                        Text("1. Connect your phone to a PC or laptop via USB.", color = TethrGray400)
+                        Text("1. Enable 'USB Debugging' in Developer Options.", color = TethrAmber, fontWeight = FontWeight.Medium)
                         Spacer(Modifier.height(8.dp))
-                        Text("2. Open Google Chrome on your PC and visit:", color = TethrGray400)
+                        Text("2. Connect your phone to a PC or laptop via USB.", color = TethrGray400)
+                        Spacer(Modifier.height(8.dp))
+                        Text("3. Open Google Chrome on your PC and visit:", color = TethrGray400)
                         Spacer(Modifier.height(4.dp))
                         Text("tethrai.in/activator", color = Color.White, fontWeight = FontWeight.Bold)
                         Spacer(Modifier.height(8.dp))
-                        Text("3. Make sure to select '${BuildConfig.APPLICATION_ID}' in the dropdown.", color = TethrAmber, fontWeight = FontWeight.Medium)
+                        Text("4. Make sure to select '${BuildConfig.APPLICATION_ID}' in the dropdown.", color = TethrAmber, fontWeight = FontWeight.Medium)
                         Spacer(Modifier.height(8.dp))
-                        Text("4. Click 'Connect' on the webpage.", color = TethrGray400)
+                        Text("5. Click 'Connect' on the webpage.", color = TethrGray400)
                     }
                 },
                 confirmButton = {
@@ -587,7 +588,7 @@ private fun TimeExceededCard(todayUsageMs: Long, avg10DayMs: Long) {
         Spacer(Modifier.height(12.dp))
         Text("+${formatDurationHours(exceededBy)}", color = Color.White, fontWeight = FontWeight.Black, fontSize = 36.sp)
         Spacer(Modifier.height(8.dp))
-        Text("You are over your ${formatDurationHours(avg10DayMs)} daily average. The AI Trigger has tightened.", 
+        Text("You are over your ${formatDurationHours(avg10DayMs)} daily average. The Dynamic Trigger has tightened.", 
             color = Color(0xFFAAAAAA), fontSize = 13.sp, textAlign = TextAlign.Center)
     }
 }
@@ -617,7 +618,7 @@ private fun StatsRow(
         )
         StatChip(
             modifier = Modifier.weight(1f),
-            label = "AI Trigger",
+            label = "Dynamic Trigger",
             value = triggerTimeText,
             color = Color.White,
         )
@@ -740,7 +741,7 @@ private fun EscalationMatrixCard(triggerTimeMs: Long) {
         Spacer(Modifier.height(10.dp))
 
         Text(
-            "AI Trigger at $tier2Start — personalized from your usage history",
+            "Dynamic Trigger at $tier2Start — personalized from your usage history",
             color = TethrGray400,
             fontSize = 12.sp,
         )

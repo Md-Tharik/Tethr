@@ -16,6 +16,7 @@ class TethrAccessibilityService : AccessibilityService() {
     private var overlayManager: OverlayManager? = null
     private var isGrayscaleActive = false
     private var popupsShown = 0
+    private var lastDemoModeState = false
 
     private val installedKeyboards: Set<String> by lazy {
         val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
@@ -26,8 +27,6 @@ class TethrAccessibilityService : AccessibilityService() {
         if (installedKeyboards.contains(pkg)) return true
 
         return pkg == "android"
-            || pkg.contains("systemui", ignoreCase = true)
-            || pkg.contains("sysui", ignoreCase = true)
             || pkg.contains("volume", ignoreCase = true)
             || pkg.contains("notification", ignoreCase = true)
             || pkg.contains("statusbar", ignoreCase = true)
@@ -45,6 +44,13 @@ class TethrAccessibilityService : AccessibilityService() {
     private val timeTrackerRunnable = object : Runnable {
         override fun run() {
             if (isInstagramActive) {
+
+                handler.postDelayed(this, 1000) // Ensure the loop continues
+                
+                if (overlayManager?.isBarrierShowing == true) {
+                    return // Pause time tracking while a barrier is showing
+                }
+
                 activeTimeMs += 1000
 
                 val sharedPrefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -52,17 +58,31 @@ class TethrAccessibilityService : AccessibilityService() {
                     .putLong(KEY_ACTIVE_TIME_MS, activeTimeMs)
                     .apply()
 
-                val isDemoMode = sharedPrefs.getBoolean("DEMO_MODE", false)
+                val repo = com.example.tethr.data.SessionRepository(this@TethrAccessibilityService)
+                val isDemoMode = repo.isDemoMode()
                 
-                // Get user-configured thresholds for normal mode
-                val tier2StartMins = sharedPrefs.getInt("TIER2_START", 5)
-                val grayscaleThresholdMs = if (isDemoMode) 15_000L else tier2StartMins * 60_000L
+                if (isDemoMode && !lastDemoModeState) {
+                    activeTimeMs = 0
+                    isGrayscaleActive = false
+                    popupsShown = 0
+                    overlayManager?.setSystemGrayscale(false)
+                    overlayManager?.hideBarrier()
+                    Log.d(TAG, "Demo mode toggled ON, reset active timer to 0")
+                }
+                lastDemoModeState = isDemoMode
+                
+                // Get dynamic thresholds based on usage history (punishment factor)
+                val grayscaleThresholdMs = if (isDemoMode) 15_000L else repo.computeTriggerTime()
                 
                 // 1. Grayscale Check
                 if (activeTimeMs >= grayscaleThresholdMs && !isGrayscaleActive) {
                     overlayManager?.setSystemGrayscale(true)
                     isGrayscaleActive = true
                     Log.d(TAG, "Grayscale ON at threshold")
+                } else if (activeTimeMs < grayscaleThresholdMs && isGrayscaleActive) {
+                    overlayManager?.setSystemGrayscale(false)
+                    isGrayscaleActive = false
+                    Log.d(TAG, "Grayscale OFF because active time is now below threshold (e.g. demo mode disabled)")
                 }
 
                 // 2. Popup Check
@@ -81,17 +101,19 @@ class TethrAccessibilityService : AccessibilityService() {
                     }
                     
                     if (expectedPopups > popupsShown) {
-                        popupsShown = expectedPopups
-                        overlayManager?.showRandomBarrier()
+                        popupsShown++ // strict increment to ensure sequence
+                        overlayManager?.showBarrier(popupsShown)
                         Log.d(TAG, "Showing barrier popup #$popupsShown")
                     }
+                } else if (activeTimeMs < grayscaleThresholdMs && popupsShown > 0) {
+                    overlayManager?.hideBarrier()
+                    popupsShown = 0
+                    Log.d(TAG, "Hiding barriers because active time is now below threshold")
                 }
 
                 // Dispatch time metrics to the OverlayManager
                 val effectiveTimeMs = if (isDemoMode) activeTimeMs * 60 else activeTimeMs
                 overlayManager?.updateMetrics(activeTimeMs, isDemoMode)
-
-                handler.postDelayed(this, 1000)
             }
         }
     }
@@ -111,11 +133,37 @@ class TethrAccessibilityService : AccessibilityService() {
 
         // Handle Window State Changed (Detect active app)
         if (event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
-            handleWindowStateChange(packageName)
+            handleWindowStateChange(event, packageName)
         }
     }
 
-    private fun handleWindowStateChange(packageName: String) {
+    private fun forceCleanup() {
+        if (!isInstagramActive) return
+        Log.d(TAG, "Instagram closed/backgrounded — cleaning up everything")
+        isInstagramActive = false
+        handler.removeCallbacks(timeTrackerRunnable)
+
+        val currentTime = System.currentTimeMillis()
+        val sharedPrefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        sharedPrefs.edit()
+            .putLong(KEY_LAST_CLOSED_TIME, currentTime)
+            .putLong(KEY_ACTIVE_TIME_MS, activeTimeMs)
+            .putBoolean(KEY_GRAYSCALE_ACTIVE, isGrayscaleActive)
+            .putInt(KEY_POPUPS_SHOWN, popupsShown)
+            .putBoolean(KEY_WAS_BARRIER_SHOWING, overlayManager?.isBarrierShowing == true)
+            .apply()
+
+        if (isGrayscaleActive) {
+            overlayManager?.setSystemGrayscale(false)
+        }
+        
+        isGrayscaleActive = false
+        popupsShown = 0
+
+        overlayManager?.hideOverlay()
+    }
+
+    private fun handleWindowStateChange(event: AccessibilityEvent, packageName: String) {
         val sharedPrefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         val currentTime = System.currentTimeMillis()
 
@@ -129,30 +177,78 @@ class TethrAccessibilityService : AccessibilityService() {
                 if (lastClosedTime > 0 && (currentTime - lastClosedTime) > 10 * 60 * 1000) {
                     // Over 10 minutes away — reset everything
                     Log.d(TAG, "Over 10 minutes passed. Resetting all state.")
+                    
+                    val finalActiveTime = sharedPrefs.getLong(KEY_ACTIVE_TIME_MS, 0)
+                    if (finalActiveTime > 0) {
+                        val repo = com.example.tethr.data.SessionRepository(this@TethrAccessibilityService)
+                        repo.recordSession(finalActiveTime)
+                    }
+                    
                     activeTimeMs = 0
                     isGrayscaleActive = false
                     popupsShown = 0
                     sharedPrefs.edit()
                         .putLong(KEY_ACTIVE_TIME_MS, 0)
+                        .putBoolean(KEY_GRAYSCALE_ACTIVE, false)
+                        .putInt(KEY_POPUPS_SHOWN, 0)
                         .apply()
                 } else {
                     // Resume state
                     activeTimeMs = sharedPrefs.getLong(KEY_ACTIVE_TIME_MS, 0)
+                    isGrayscaleActive = sharedPrefs.getBoolean(KEY_GRAYSCALE_ACTIVE, false)
+                    popupsShown = sharedPrefs.getInt(KEY_POPUPS_SHOWN, 0)
+                    val wasBarrierShowing = sharedPrefs.getBoolean(KEY_WAS_BARRIER_SHOWING, false)
                     Log.d(TAG, "Resuming: ${activeTimeMs}ms")
+                    
+                    if (isGrayscaleActive) {
+                        overlayManager?.setSystemGrayscale(true)
+                    }
+                    if (wasBarrierShowing && popupsShown > 0) {
+                        overlayManager?.showBarrier(popupsShown)
+                    }
                 }
 
                 overlayManager?.showOverlay()
                 handler.post(timeTrackerRunnable)
             }
         } else if (!isTransientSystemPackage(packageName)) {
-            // Identify if the user explicitly went to the home screen (Launcher).
-            // We want the pill to vanish INSTANTLY on home screen presses, without checking physical windows.
+            val isSystemUI = packageName.contains("systemui", ignoreCase = true) || packageName.contains("sysui", ignoreCase = true)
+            
+            if (isSystemUI) {
+                val className = event.className?.toString() ?: ""
+                var isNotificationOrVolume = className.contains("Notification", ignoreCase = true)
+                        || className.contains("StatusBar", ignoreCase = true)
+                        || className.contains("Volume", ignoreCase = true)
+                        || className.contains("panel", ignoreCase = true)
+
+                // Physics-based fallback: Notification shades drop from the top (y=0). Gestures are at the bottom.
+                try {
+                    val node = event.source
+                    if (node != null) {
+                        val rect = android.graphics.Rect()
+                        node.getBoundsInScreen(rect)
+                        if (rect.top <= 100) {
+                            isNotificationOrVolume = true
+                        }
+                    }
+                } catch (e: Exception) {}
+
+                if (isNotificationOrVolume) {
+                    return // Keep overlay alive for notifications
+                } else {
+                    Log.d(TAG, "SystemUI gesture swipe detected. Hiding instantly.")
+                    forceCleanup()
+                    return
+                }
+            }
+
             val isLauncher = packageName.contains("launcher", ignoreCase = true) || 
                              packageName == "com.miui.home" || 
                              packageName == "com.sec.android.app.launcher" ||
-                             packageName.contains("bbk", ignoreCase = true)
-                             
-            // If it is NOT an explicit launcher exit, we check if Instagram is actually still physically visible underneath
+                             packageName.contains("bbk", ignoreCase = true) ||
+                             packageName == "com.google.android.apps.nexuslauncher"
+
+            // Check if Instagram is actually still physically visible underneath (active)
             if (!isLauncher) {
                 if (getVisibleTargetPackage() != null) {
                     Log.d(TAG, "Ignored false exit to $packageName; Instagram is still visible")
@@ -160,37 +256,13 @@ class TethrAccessibilityService : AccessibilityService() {
                 }
             }
 
-            if (isInstagramActive) {
-                Log.d(TAG, "Instagram closed/backgrounded — cleaning up everything")
-                isInstagramActive = false
-                handler.removeCallbacks(timeTrackerRunnable)
-
-                // Turn off grayscale immediately when leaving Instagram
-                if (isGrayscaleActive) {
-                    overlayManager?.setSystemGrayscale(false)
-                    isGrayscaleActive = false
-                }
-                popupsShown = 0
-
-                sharedPrefs.edit()
-                    .putLong(KEY_LAST_CLOSED_TIME, currentTime)
-                    .putLong(KEY_ACTIVE_TIME_MS, activeTimeMs)
-                    .apply()
-
-                overlayManager?.hideOverlay()
-            }
+            forceCleanup()
         }
     }
 
     override fun onInterrupt() {
         Log.d(TAG, "TethrAccessibilityService Interrupted — cleaning up")
-        isInstagramActive = false
-        handler.removeCallbacks(timeTrackerRunnable)
-        if (isGrayscaleActive) {
-            overlayManager?.setSystemGrayscale(false)
-            isGrayscaleActive = false
-        }
-        overlayManager?.hideOverlay()
+        forceCleanup()
     }
 
     private fun getVisibleTargetPackage(): String? {
@@ -206,7 +278,7 @@ class TethrAccessibilityService : AccessibilityService() {
             if (currentWindows != null) {
                 for (window in currentWindows) {
                     val rootPkg = try { window.root?.packageName?.toString() } catch (e: Exception) { null }
-                    if (rootPkg == "com.instagram.android") {
+                    if (rootPkg == "com.instagram.android" && window.isActive) {
                         return rootPkg
                     }
                 }
@@ -221,6 +293,9 @@ class TethrAccessibilityService : AccessibilityService() {
         private const val PREFS_NAME = "TethrPrefs"
         private const val KEY_ACTIVE_TIME_MS = "ACTIVE_TIME_MS"
         private const val KEY_LAST_CLOSED_TIME = "LAST_CLOSED_TIME"
+        private const val KEY_GRAYSCALE_ACTIVE = "GRAYSCALE_ACTIVE"
+        private const val KEY_POPUPS_SHOWN = "POPUPS_SHOWN"
+        private const val KEY_WAS_BARRIER_SHOWING = "WAS_BARRIER_SHOWING"
     }
 }
 

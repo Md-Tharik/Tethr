@@ -67,13 +67,15 @@ class AdbPairingReceiver : BroadcastReceiver() {
     }
 
     private fun updateNotification(context: Context, manager: NotificationManager, text: String, ongoing: Boolean = false) {
-        val builder = NotificationCompat.Builder(context, "tethr_setup")
+        val builder = NotificationCompat.Builder(context, "tethr_setup_v2")
             .setSmallIcon(android.R.drawable.ic_dialog_info) // Make sure to use a valid icon, R.drawable.ic_dialog_info exists natively
             .setContentTitle("Tethr Activation")
             .setContentText(text)
             .setStyle(NotificationCompat.BigTextStyle().bigText(text))
             .setOngoing(ongoing)
             .setAutoCancel(!ongoing)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setDefaults(NotificationCompat.DEFAULT_ALL)
 
         manager.notify(NOTIFICATION_ID, builder.build())
     }
