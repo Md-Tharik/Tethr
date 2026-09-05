@@ -10,8 +10,12 @@ import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.ui.NavDisplay
 import com.example.tethr.ui.main.MainScreen
 
+import com.example.tethr.billing.BillingManager
+import com.example.tethr.billing.SupporterStore
+import com.example.tethr.ui.supporter.SupporterScreen
+
 @Composable
-fun MainNavigation() {
+fun MainNavigation(billingManager: BillingManager, supporterStore: SupporterStore) {
   val backStack = rememberNavBackStack(Main)
 
   NavDisplay(
@@ -21,6 +25,13 @@ fun MainNavigation() {
       entryProvider {
         entry<Main> {
           MainScreen(onItemClick = { navKey -> backStack.add(navKey) }, modifier = Modifier.safeDrawingPadding().padding(16.dp))
+        }
+        entry<SupporterScreenKey> {
+          SupporterScreen(
+            onBack = { backStack.removeLastOrNull() },
+            billingManager = billingManager,
+            supporterStore = supporterStore
+          )
         }
       },
   )

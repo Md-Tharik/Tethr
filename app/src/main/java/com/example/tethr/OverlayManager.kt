@@ -45,9 +45,9 @@ class OverlayManager(private val context: Context) {
         }
     }
 
-    fun updateMetrics(activeTimeMs: Long, isDemoMode: Boolean) {
+    fun updateMetrics(activeTimeMs: Long, isDemoMode: Boolean, pillBg: String = "default", imageUri: String? = null) {
         val effectiveTimeMs = if (isDemoMode) activeTimeMs * 60 else activeTimeMs
-        overlayView?.updateState(effectiveTimeMs)
+        overlayView?.updateState(effectiveTimeMs, pillBg, imageUri)
     }
 
     fun hideOverlay() {
@@ -150,8 +150,47 @@ class OverlayManager(private val context: Context) {
             textAlign = Paint.Align.CENTER
         }
 
-        fun updateState(timeMs: Long) {
+        private var customBitmap: android.graphics.Bitmap? = null
+        private var currentUri: String? = null
+
+        fun updateState(timeMs: Long, pillBg: String = "default", imageUri: String? = null) {
             this.activeTimeMs = timeMs
+
+            if (imageUri != null && imageUri != currentUri) {
+                currentUri = imageUri
+                try {
+                    val uri = android.net.Uri.parse(imageUri)
+                    val inputStream = context.contentResolver.openInputStream(uri)
+                    val bitmap = android.graphics.BitmapFactory.decodeStream(inputStream)
+                    inputStream?.close()
+                    
+                    if (bitmap != null) {
+                        val croppedBitmap = android.media.ThumbnailUtils.extractThumbnail(bitmap, 440, 100)
+                        customBitmap = croppedBitmap
+                        paintPill.shader = android.graphics.BitmapShader(croppedBitmap, android.graphics.Shader.TileMode.CLAMP, android.graphics.Shader.TileMode.CLAMP)
+                    }
+                } catch (e: Exception) {
+                    customBitmap = null
+                    paintPill.shader = null
+                }
+            } else if (imageUri == null && currentUri != null) {
+                currentUri = null
+                customBitmap = null
+                paintPill.shader = null
+            }
+            
+            if (customBitmap == null) {
+                paintPill.shader = null
+                paintPill.color = when (pillBg) {
+                    "green" -> Color.parseColor("#CC1B5E20")
+                    "red" -> Color.parseColor("#CCB71C1C")
+                    "gold" -> Color.parseColor("#CCF57F17")
+                    "blue" -> Color.parseColor("#CC0D47A1")
+                    "purple" -> Color.parseColor("#CC4A148C")
+                    "sunset" -> Color.parseColor("#CCBF360C")
+                    else -> Color.parseColor("#CC000000")
+                }
+            }
             invalidate()
         }
 

@@ -39,6 +39,7 @@ import com.example.tethr.adb.AdbManager
 import com.example.tethr.data.SessionRepository
 import com.example.tethr.theme.*
 import com.example.tethr.R
+import com.example.tethr.SupporterScreenKey
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -178,7 +179,7 @@ fun MainScreen(
             Spacer(Modifier.height(28.dp))
 
             // ── Time Reclaimed ────────────────────────────────────────────
-            if (!hasBaseline && !BuildConfig.DEBUG) {
+            if (!hasBaseline) {
                 CalibratingCard()
                 Spacer(Modifier.height(16.dp))
             } else if (timeSavedTodayMs > 0L) {
@@ -251,8 +252,29 @@ fun MainScreen(
 
             Spacer(Modifier.height(24.dp))
 
-            // â”€â”€ Escalation Matrix Info Card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            // ── Escalation Matrix Info Card ────────────────────────────────
             EscalationMatrixCard(triggerTimeMs = triggerTime)
+
+            Spacer(Modifier.height(24.dp))
+
+            // ── Supporter Pack Banner ──────────────────────────────────────
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(Brush.linearGradient(listOf(Color(0xFF2E5136), Color(0xFF1B2F22))))
+                    .clickable { onItemClick(SupporterScreenKey) }
+                    .padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(Icons.Rounded.Star, contentDescription = null, tint = TethrGreen, modifier = Modifier.size(32.dp))
+                Spacer(Modifier.width(16.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("Support Tethr", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                    Text("Unlock custom app icons & colors", color = TethrGreen, fontSize = 13.sp)
+                }
+                Icon(Icons.Rounded.ArrowForward, contentDescription = null, tint = Color.White, modifier = Modifier.size(20.dp))
+            }
 
             Spacer(Modifier.height(24.dp))
 

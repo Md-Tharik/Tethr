@@ -11,8 +11,8 @@ android {
         applicationId = "ai.tethr.app"
         minSdk = 24
         targetSdk = 36
-        versionCode = 7
-        versionName = "1.6"
+        versionCode = 9
+        versionName = "1.8"
     }
 
     signingConfigs {
@@ -104,4 +104,10 @@ dependencies {
   
   // ML Kit for Intention NLP
   implementation("com.google.mlkit:language-id:17.0.5")
+  
+  // Google Play Billing
+  implementation("com.android.billingclient:billing-ktx:8.0.0")
+  
+  // DataStore for Preferences
+  implementation("androidx.datastore:datastore-preferences:1.1.1")
 }

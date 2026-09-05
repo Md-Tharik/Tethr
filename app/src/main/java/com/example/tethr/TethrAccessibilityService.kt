@@ -8,11 +8,20 @@ import android.os.Looper
 import android.util.Log
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
+import com.example.tethr.billing.SupporterStore
 
 class TethrAccessibilityService : AccessibilityService() {
 
+    private val serviceScope = CoroutineScope(Dispatchers.IO)
+    private var currentTimerPillBg = "default"
+    private var currentTimerPillImageUri: String? = null
+
     private var activeTimeMs: Long = 0
-    private var isInstagramActive = false
+    private var isTargetAppActive = false
     private var overlayManager: OverlayManager? = null
     private var isGrayscaleActive = false
     private var popupsShown = 0
@@ -43,7 +52,7 @@ class TethrAccessibilityService : AccessibilityService() {
     private val handler = Handler(Looper.getMainLooper())
     private val timeTrackerRunnable = object : Runnable {
         override fun run() {
-            if (isInstagramActive) {
+            if (isTargetAppActive) {
 
                 handler.postDelayed(this, 1000) // Ensure the loop continues
                 
@@ -113,7 +122,7 @@ class TethrAccessibilityService : AccessibilityService() {
 
                 // Dispatch time metrics to the OverlayManager
                 val effectiveTimeMs = if (isDemoMode) activeTimeMs * 60 else activeTimeMs
-                overlayManager?.updateMetrics(activeTimeMs, isDemoMode)
+                overlayManager?.updateMetrics(activeTimeMs, isDemoMode, currentTimerPillBg, currentTimerPillImageUri)
             }
         }
     }
@@ -123,8 +132,25 @@ class TethrAccessibilityService : AccessibilityService() {
         Log.d(TAG, "TethrAccessibilityService Connected")
         overlayManager = OverlayManager(this)
 
+        val supporterStore = SupporterStore(this)
+        serviceScope.launch {
+            supporterStore.timerPillBg.collect { bg ->
+                currentTimerPillBg = bg
+            }
+        }
+        serviceScope.launch {
+            supporterStore.timerPillImageUri.collect { uri ->
+                currentTimerPillImageUri = uri
+            }
+        }
+
         val intent = Intent(this, TethrForegroundService::class.java)
         startForegroundService(intent)
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        serviceScope.cancel()
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
@@ -138,9 +164,9 @@ class TethrAccessibilityService : AccessibilityService() {
     }
 
     private fun forceCleanup() {
-        if (!isInstagramActive) return
-        Log.d(TAG, "Instagram closed/backgrounded — cleaning up everything")
-        isInstagramActive = false
+        if (!isTargetAppActive) return
+        Log.d(TAG, "Target app closed/backgrounded — cleaning up everything")
+        isTargetAppActive = false
         handler.removeCallbacks(timeTrackerRunnable)
 
         val currentTime = System.currentTimeMillis()
@@ -167,10 +193,10 @@ class TethrAccessibilityService : AccessibilityService() {
         val sharedPrefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         val currentTime = System.currentTimeMillis()
 
-        if (packageName == "com.instagram.android") {
-            if (!isInstagramActive) {
-                Log.d(TAG, "Instagram opened")
-                isInstagramActive = true
+        if (TARGET_PACKAGES.contains(packageName)) {
+            if (!isTargetAppActive) {
+                Log.d(TAG, "Target app opened")
+                isTargetAppActive = true
 
                 // Cooldown Reset
                 val lastClosedTime = sharedPrefs.getLong(KEY_LAST_CLOSED_TIME, 0)
@@ -248,10 +274,10 @@ class TethrAccessibilityService : AccessibilityService() {
                              packageName.contains("bbk", ignoreCase = true) ||
                              packageName == "com.google.android.apps.nexuslauncher"
 
-            // Check if Instagram is actually still physically visible underneath (active)
+            // Check if target app is actually still physically visible underneath (active)
             if (!isLauncher) {
                 if (getVisibleTargetPackage() != null) {
-                    Log.d(TAG, "Ignored false exit to $packageName; Instagram is still visible")
+                    Log.d(TAG, "Ignored false exit to $packageName; Target app is still visible")
                     return
                 }
             }
@@ -268,7 +294,7 @@ class TethrAccessibilityService : AccessibilityService() {
     private fun getVisibleTargetPackage(): String? {
         try {
             val activeRootPkg = rootInActiveWindow?.packageName?.toString()
-            if (activeRootPkg == "com.instagram.android") {
+            if (TARGET_PACKAGES.contains(activeRootPkg)) {
                 return activeRootPkg
             }
         } catch (e: Exception) {}
@@ -278,7 +304,7 @@ class TethrAccessibilityService : AccessibilityService() {
             if (currentWindows != null) {
                 for (window in currentWindows) {
                     val rootPkg = try { window.root?.packageName?.toString() } catch (e: Exception) { null }
-                    if (rootPkg == "com.instagram.android" && window.isActive) {
+                    if (TARGET_PACKAGES.contains(rootPkg) && window.isActive) {
                         return rootPkg
                     }
                 }
@@ -289,6 +315,12 @@ class TethrAccessibilityService : AccessibilityService() {
     }
 
     companion object {
+        val TARGET_PACKAGES = setOf(
+            "com.instagram.android", // Instagram
+            "com.zhiliaoapp.musically", // TikTok
+            "com.ss.android.ugc.trill", // TikTok (some regions)
+            "com.facebook.katana" // Facebook
+        )
         private const val TAG = "TethrAccessibility"
         private const val PREFS_NAME = "TethrPrefs"
         private const val KEY_ACTIVE_TIME_MS = "ACTIVE_TIME_MS"

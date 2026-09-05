@@ -12,6 +12,9 @@
 
     <!-- Required for True Hardware Grayscale via ADB/Shizuku -->
     <uses-permission android:name="android.permission.WRITE_SECURE_SETTINGS" tools:ignore="ProtectedPermissions" />
+    
+    <!-- Required for Google Play In-App Purchases -->
+    <uses-permission android:name="com.android.vending.BILLING" />
 
     <application
         android:allowBackup="true"
@@ -25,12 +28,53 @@
         <activity
             android:name=".MainActivity"
             android:exported="true"
+            android:icon="@drawable/logo"
+            android:roundIcon="@drawable/logo"
             android:windowSoftInputMode="adjustResize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <activity-alias
+            android:name=".MainActivityAlias2"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@drawable/logo_2"
+            android:roundIcon="@drawable/logo_2"
+            android:targetActivity=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name=".MainActivityAlias3"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@drawable/logo_3"
+            android:roundIcon="@drawable/logo_3"
+            android:targetActivity=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name=".MainActivityAlias4"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@drawable/logo_4"
+            android:roundIcon="@drawable/logo_4"
+            android:targetActivity=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
 
         <activity
             android:name=".DummyRelayoutActivity"
