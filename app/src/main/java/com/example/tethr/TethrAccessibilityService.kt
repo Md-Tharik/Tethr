@@ -53,6 +53,28 @@ class TethrAccessibilityService : AccessibilityService() {
     private val timeTrackerRunnable = object : Runnable {
         override fun run() {
             if (isTargetAppActive) {
+                // Self-healing failsafe: Catch race conditions where events are missed but the app is gone
+                val activeRootPkg = rootInActiveWindow?.packageName?.toString()
+                if (activeRootPkg != null) {
+                    val isLauncher = activeRootPkg.contains("launcher", ignoreCase = true) || 
+                                     activeRootPkg == "com.miui.home" || 
+                                     activeRootPkg == "com.sec.android.app.launcher" ||
+                                     activeRootPkg.contains("bbk", ignoreCase = true) ||
+                                     activeRootPkg == "com.google.android.apps.nexuslauncher"
+                    
+                    if (isLauncher) {
+                        Log.d(TAG, "Self-healing: Detected Launcher on screen. Cleaning up.")
+                        forceCleanup()
+                        return
+                    }
+                    
+                    // Also self-heal if they somehow ended up in another normal app (e.g. Chrome)
+                    if (!TARGET_PACKAGES.contains(activeRootPkg) && !isTransientSystemPackage(activeRootPkg) && !activeRootPkg.contains("systemui", ignoreCase = true)) {
+                        Log.d(TAG, "Self-healing: Detected another app ($activeRootPkg). Cleaning up.")
+                        forceCleanup()
+                        return
+                    }
+                }
 
                 handler.postDelayed(this, 1000) // Ensure the loop continues
                 
@@ -160,6 +182,22 @@ class TethrAccessibilityService : AccessibilityService() {
         // Handle Window State Changed (Detect active app)
         if (event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
             handleWindowStateChange(event, packageName)
+        } else if (event.eventType == AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED) {
+            if (TARGET_PACKAGES.contains(packageName) && !isTargetAppActive) {
+                // Avoid reviving the pill during an exit animation to the homescreen by strictly checking the root active window
+                val activeRootPkg = rootInActiveWindow?.packageName?.toString()
+                if (activeRootPkg == packageName) {
+                    // Wait 300ms to allow any rapid exit animations to finish settling.
+                    // If the user rapidly closed the app, the root window will change within this 300ms.
+                    handler.postDelayed({
+                        val doubleCheckPkg = rootInActiveWindow?.packageName?.toString()
+                        if (doubleCheckPkg == packageName && !isTargetAppActive) {
+                            Log.d(TAG, "Recovered active state via content change for $packageName")
+                            handleWindowStateChange(event, packageName)
+                        }
+                    }, 300)
+                }
+            }
         }
     }
 
