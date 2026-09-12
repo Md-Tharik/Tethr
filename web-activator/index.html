@@ -221,37 +221,7 @@
             stroke-linejoin: round;
         }
 
-        /* Badge */
-        .hero-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            background: rgba(255,255,255,0.05);
-            border: 1px solid var(--border-bright);
-            border-radius: 100px;
-            padding: 6px 16px;
-            font-size: 0.78rem;
-            font-weight: 600;
-            color: var(--gray-400);
-            letter-spacing: 0.05em;
-            text-transform: uppercase;
-            margin-bottom: 32px;
-            animation: hero-fade-up 1s 0.2s cubic-bezier(0.4, 0, 0.2, 1) both;
-        }
 
-        .badge-dot {
-            width: 6px;
-            height: 6px;
-            border-radius: 50%;
-            background: #00e5b0;
-            box-shadow: 0 0 8px #00e5b0;
-            animation: blink 2s ease-in-out infinite;
-        }
-
-        @keyframes blink {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.3; }
-        }
 
         /* Headline */
         h1 {
@@ -296,46 +266,7 @@
             animation: hero-fade-up 1s 0.5s cubic-bezier(0.4, 0, 0.2, 1) both;
         }
 
-        .btn-join {
-            position: relative;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            padding: 16px 36px;
-            border-radius: 100px;
-            font-size: 1rem;
-            font-weight: 700;
-            text-decoration: none;
-            color: var(--black);
-            background: var(--white);
-            overflow: hidden;
-            transition: transform 0.25s ease, box-shadow 0.25s ease;
-            box-shadow: 0 0 0 1px rgba(255,255,255,0.3);
-        }
 
-        .btn-join::before {
-            content: '';
-            position: absolute;
-            inset: 0;
-            background: linear-gradient(135deg, rgba(200,180,255,0.4), transparent);
-            opacity: 0;
-            transition: opacity 0.3s ease;
-        }
-
-        .btn-join:hover {
-            transform: translateY(-3px) scale(1.02);
-            box-shadow: 0 8px 30px rgba(255,255,255,0.2);
-        }
-
-        .btn-join:hover::before { opacity: 1; }
-
-        .btn-join-arrow {
-            display: inline-block;
-            transition: transform 0.25s ease;
-        }
-
-        .btn-join:hover .btn-join-arrow { transform: translateX(4px); }
 
         .btn-ghost {
             display: inline-flex;
@@ -721,8 +652,7 @@
         @media (max-width: 640px) {
             nav { padding: 18px 5%; }
             .hero { padding: 60px 5% 80px; min-height: 80vh; }
-            .hero-btns { flex-direction: column; align-items: center; width: 100%; }
-            .btn-join, .btn-ghost { width: 100%; justify-content: center; }
+            .hero-btns { flex-direction: column; align-items: center; width: 100%; gap: 24px; }
             .features { padding: 60px 5%; }
             .steps::before { left: 20px; }
             footer { flex-direction: column; align-items: flex-start; }
@@ -755,10 +685,7 @@
             </div>
         </div>
 
-        <div class="hero-badge">
-            <span class="badge-dot"></span>
-            Closed Beta - Now Accepting
-        </div>
+
 
         <h1 class="gradient-text">Break<br>the Loop.</h1>
 
