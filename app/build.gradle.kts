@@ -14,8 +14,8 @@ android {
         applicationId = "ai.tethr.app"
         minSdk = 24
         targetSdk = 36
-        versionCode = 17
-        versionName = "1.16"
+        versionCode = 18
+        versionName = "1.17"
     }
 
     ndkVersion = "28.2.13676358"

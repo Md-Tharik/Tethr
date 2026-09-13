@@ -446,29 +446,77 @@ fun MainScreen(
 
         if (showAccessibilityDisclosure) {
             AlertDialog(
-                onDismissRequest = { showAccessibilityDisclosure = false },
-                title = { Text("Accessibility Permission", color = Color.White) },
+                onDismissRequest = { /* Do NOT dismiss on outside tap or back press — Google policy requires explicit user action */ },
+                title = {
+                    Text(
+                        "Accessibility Service Disclosure",
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 18.sp
+                    )
+                },
                 text = {
                     Column {
-                        Text("Tethr uses the AccessibilityService API.", color = Color.White, fontWeight = FontWeight.Bold)
+                        Text(
+                            "Tethr requires the Android AccessibilityService API to provide its core anti-doomscrolling functionality. Specifically, this permission is used for the following features:",
+                            color = Color.White,
+                            fontSize = 14.sp,
+                            lineHeight = 20.sp
+                        )
+                        Spacer(Modifier.height(12.dp))
+                        Text(
+                            "1. App Detection: Tethr uses AccessibilityService to detect which app is currently in the foreground (e.g., Instagram, YouTube, TikTok) so it can start tracking your scrolling session duration.",
+                            color = TethrGray400,
+                            fontSize = 13.sp,
+                            lineHeight = 19.sp
+                        )
                         Spacer(Modifier.height(8.dp))
-                        Text("This app uses the AccessibilityService API to detect which apps you are actively using and track your screen time to prevent doomscrolling.", color = TethrGray400)
+                        Text(
+                            "2. Scroll Monitoring: Tethr uses AccessibilityService to detect scroll events within social media apps to measure active usage and trigger escalating friction (timer pill, grayscale, math quiz) when your session exceeds your personalized AI-determined limit.",
+                            color = TethrGray400,
+                            fontSize = 13.sp,
+                            lineHeight = 19.sp
+                        )
                         Spacer(Modifier.height(8.dp))
-                        Text("• We use this permission exclusively to identify the active app on your screen to manage your digital wellbeing.", color = TethrGray400)
-                        Spacer(Modifier.height(4.dp))
-                        Text("• Tethr does NOT collect, store, or share any personal data, passwords, or on-screen content.", color = TethrGray400)
+                        Text(
+                            "3. Timer Overlay: Tethr uses AccessibilityService to display a floating timer pill overlay on top of social media apps, showing your remaining session time.",
+                            color = TethrGray400,
+                            fontSize = 13.sp,
+                            lineHeight = 19.sp
+                        )
+                        Spacer(Modifier.height(12.dp))
+                        Text(
+                            "Tethr does NOT collect, store, transmit, or share any personal data, passwords, keystrokes, or on-screen content. All processing happens entirely on your device.",
+                            color = Color.White,
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 13.sp,
+                            lineHeight = 19.sp
+                        )
+                        Spacer(Modifier.height(12.dp))
+                        Text(
+                            "By tapping \"I Agree\" below, you consent to enabling the Accessibility Service for the features described above. Tapping \"Decline\" will return you to the main screen without enabling the service.",
+                            color = TethrGray400,
+                            fontSize = 12.sp,
+                            lineHeight = 17.sp
+                        )
                     }
                 },
                 confirmButton = {
-                    TextButton(onClick = { 
-                        showAccessibilityDisclosure = false
-                        context.startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
-                    }) {
-                        Text("Agree", color = Color.White)
+                    Button(
+                        onClick = {
+                            showAccessibilityDisclosure = false
+                            context.startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color.White)
+                    ) {
+                        Text("I Agree", color = Color.Black, fontWeight = FontWeight.Bold)
                     }
                 },
                 dismissButton = {
-                    TextButton(onClick = { showAccessibilityDisclosure = false }) {
+                    OutlinedButton(
+                        onClick = { showAccessibilityDisclosure = false },
+                        border = BorderStroke(1.dp, TethrGray400)
+                    ) {
                         Text("Decline", color = TethrGray400)
                     }
                 },
