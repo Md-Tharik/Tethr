@@ -153,15 +153,12 @@
     </div>
 
     <!-- Required implementation for ya-webadb -->
-    <script type="module">
-        // Using Ya-WebADB v0.0.22 from esm.sh which correctly rewrites internal imports
-        import { Adb, AdbDaemonTransport } from 'https://esm.sh/@yume-chan/adb@0.0.22';
-        import { AdbDaemonWebUsbDeviceManager } from 'https://esm.sh/@yume-chan/adb-daemon-webusb@0.0.22';
-        import { Consumable, WritableStream } from 'https://esm.sh/@yume-chan/stream-extra@0.0.22';
-
+    <script src="/adb_source.js"></script>
+    <script>
         const connectBtn = document.getElementById('connectBtn');
         const statusBox = document.getElementById('statusBox');
         const versionSelect = document.getElementById('versionSelect');
+        let adbInstance = null;
 
         function log(message, type = 'info') {
             statusBox.style.display = 'block';
@@ -172,94 +169,68 @@
             statusBox.scrollTop = statusBox.scrollHeight;
         }
 
-        // Basic RSA Key Generation for ADB Auth
-        async function generateAdbCredentialStore() {
-            return {
-                async *iterateKeys() { },
-                async generateKey() {
-                    const keyPair = await window.crypto.subtle.generateKey(
-                        {
-                            name: "RSASSA-PKCS1-v1_5",
-                            modulusLength: 2048,
-                            publicExponent: new Uint8Array([0x01, 0x00, 0x01]),
-                            hash: "SHA-256",
-                        },
-                        true,
-                        ["sign", "verify"]
-                    );
-                    
-                    const privateKey = await window.crypto.subtle.exportKey("pkcs8", keyPair.privateKey);
-                    return { buffer: new Uint8Array(privateKey) };
-                }
-            };
-        }
-
-        connectBtn.addEventListener('click', async () => {
+        async function connect() {
+            // Reset UI
+            statusBox.innerHTML = '';
+            connectBtn.disabled = true;
+            
             try {
                 if (!navigator.usb) {
                     throw new Error("WebUSB is not supported by your browser. Please use Google Chrome or Edge on a desktop/laptop.");
                 }
 
-                log("Requesting USB device...");
-                connectBtn.disabled = true;
+                log("Requesting USB device access...");
+                adbInstance = await Adb.open("WebUSB");
 
-                // 1. Request device via WebUSB manager
-                const manager = AdbDaemonWebUsbDeviceManager.BROWSER;
-                if (!manager) {
-                    throw new Error("Browser manager not found");
-                }
-                const device = await manager.requestDevice();
-                if (!device) {
-                    throw new Error("No device selected");
+                if (!adbInstance) {
+                    throw new Error("No device selected or connection failed.");
                 }
                 
-                log(`Selected: ${device.name}`);
-
-                // 2. Open connection
-                const connection = await device.connect();
+                log("Device connected successfully.", "success");
+                log("Connecting to ADB daemon (Check your phone screen for authorization prompt)...");
                 
-                log("Authenticating (Check your phone screen for an RSA prompt)...");
+                await adbInstance.connectAdb("host::");
                 
-                // 3. Authenticate
-                const transport = await AdbDaemonTransport.authenticate({
-                    serial: device.serial,
-                    connection,
-                    credentialStore: await generateAdbCredentialStore()
-                });
+                log("ADB daemon authorized.", "success");
 
-                const adb = new Adb(transport);
-                log("Connected successfully!", "success");
-
-                // 4. Run the PM command
-                const targetPackage = versionSelect.value;
-                const command = `pm grant ${targetPackage} android.permission.WRITE_SECURE_SETTINGS`;
+                const targetAppId = versionSelect.value;
+                const command = `pm grant ${targetAppId} android.permission.WRITE_SECURE_SETTINGS`;
                 
                 log(`Executing: ${command}`);
                 
-                const process = await adb.subprocess.spawn(command);
+                const shell = await adbInstance.open('shell:' + command);
+                const r = await shell.receive();
+                const decoder = new TextDecoder('utf-8');
+                const responseText = decoder.decode(r.data);
                 
-                let output = "";
-                await process.stdout.pipeTo(new WritableStream({
-                    write(chunk) {
-                        output += new TextDecoder().decode(chunk);
-                    }
-                }));
-
-                await process.exit;
-
-                if (output.toLowerCase().includes("error") || output.toLowerCase().includes("exception")) {
-                    log(`Command failed: ${output}`, "error");
-                } else {
-                    log("Permission granted successfully!", "success");
-                    log("You can now close this tab and return to the Tethr app.");
+                if (responseText && responseText.toLowerCase().includes('error')) {
+                    throw new Error(responseText);
                 }
 
-            } catch (err) {
-                log(`Error: ${err.message}`, "error");
-            } finally {
+                log("✅ Permission Granted Successfully!", "success");
+                log("You can now close this tab and return to the Tethr app.", "success");
+                
+                connectBtn.textContent = "Granted!";
+                
+            } catch (error) {
+                console.error(error);
+                log(`Error: ${error.message}`, "error");
                 connectBtn.disabled = false;
+                if (connectBtn.textContent !== "Granted!") {
+                    connectBtn.textContent = "Retry Connection";
+                }
+            } finally {
+                if (adbInstance) {
+                    try {
+                        await adbInstance.close();
+                    } catch (e) {
+                        console.error("Error closing ADB connection", e);
+                    }
+                }
             }
-        });
+        }
+
+        connectBtn.addEventListener('click', connect);
     </script>
 </body>
 </html>
