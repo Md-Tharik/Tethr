@@ -154,10 +154,10 @@
 
     <!-- Required implementation for ya-webadb -->
     <script type="module">
-        // Using Ya-WebADB v0.0.22 from esm.sh which correctly rewrites internal imports
-        import { Adb, AdbDaemonTransport } from 'https://esm.sh/@yume-chan/adb@0.0.22';
-        import { AdbDaemonWebUsbDeviceManager } from 'https://esm.sh/@yume-chan/adb-daemon-webusb@0.0.22';
-        import { Consumable, WritableStream } from 'https://esm.sh/@yume-chan/stream-extra@0.0.22';
+        // Using Ya-WebADB v0.0.22 from esm.sh - pinned with * to lock all sub-dependencies
+        import { Adb, AdbDaemonTransport } from 'https://esm.sh/*@yume-chan/adb@0.0.22';
+        import { AdbDaemonWebUsbDeviceManager } from 'https://esm.sh/*@yume-chan/adb-daemon-webusb@0.0.22';
+        import { Consumable, WritableStream } from 'https://esm.sh/*@yume-chan/stream-extra@0.0.22';
 
         const connectBtn = document.getElementById('connectBtn');
         const statusBox = document.getElementById('statusBox');
