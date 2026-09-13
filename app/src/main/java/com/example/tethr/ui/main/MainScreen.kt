@@ -66,6 +66,7 @@ fun MainScreen(
     var showPcInstructions by remember { mutableStateOf(false) }
     var showLaptopDialog by remember { mutableStateOf(false) }
     var showInAppSetup by remember { mutableStateOf(false) }
+    var showAccessibilityDisclosure by remember { mutableStateOf(false) }
 
     var isDemoMode by remember { mutableStateOf(repo.isDemoMode()) }
     var isQuizzesEnabled by remember {
@@ -218,7 +219,11 @@ fun MainScreen(
                 subtitle = if (isAccessibilityEnabled) "Active — Tethr is monitoring" else "Required to track screen time",
                 isGranted = isAccessibilityEnabled,
                 onClick = {
-                    context.startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+                    if (!isAccessibilityEnabled) {
+                        showAccessibilityDisclosure = true
+                    } else {
+                        context.startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+                    }
                 }
             )
 
@@ -437,6 +442,40 @@ fun MainScreen(
                     Spacer(Modifier.height(16.dp))
                 }
             }
+        }
+
+        if (showAccessibilityDisclosure) {
+            AlertDialog(
+                onDismissRequest = { showAccessibilityDisclosure = false },
+                title = { Text("Accessibility Permission", color = Color.White) },
+                text = {
+                    Column {
+                        Text("Tethr uses the AccessibilityService API.", color = Color.White, fontWeight = FontWeight.Bold)
+                        Spacer(Modifier.height(8.dp))
+                        Text("This app uses the AccessibilityService API to detect which apps you are actively using and track your screen time to prevent doomscrolling.", color = TethrGray400)
+                        Spacer(Modifier.height(8.dp))
+                        Text("• We use this permission exclusively to identify the active app on your screen to manage your digital wellbeing.", color = TethrGray400)
+                        Spacer(Modifier.height(4.dp))
+                        Text("• Tethr does NOT collect, store, or share any personal data, passwords, or on-screen content.", color = TethrGray400)
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = { 
+                        showAccessibilityDisclosure = false
+                        context.startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+                    }) {
+                        Text("Agree", color = Color.White)
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showAccessibilityDisclosure = false }) {
+                        Text("Decline", color = TethrGray400)
+                    }
+                },
+                containerColor = TethrCardBg,
+                textContentColor = TethrGray400,
+                titleContentColor = Color.White
+            )
         }
     }
 }
