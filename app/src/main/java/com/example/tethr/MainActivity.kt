@@ -25,16 +25,20 @@ import com.example.tethr.billing.SupporterStore
 import com.example.tethr.update.AppUpdateHelper
 import com.google.android.play.core.install.model.AppUpdateType
 
+import com.example.tethr.auth.AuthManager
+
 class MainActivity : ComponentActivity() {
   private lateinit var supporterStore: SupporterStore
   private lateinit var billingManager: BillingManager
   private lateinit var appUpdateHelper: AppUpdateHelper
+  private lateinit var authManager: AuthManager
 
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
 
     supporterStore = SupporterStore(this)
     billingManager = BillingManager(this, supporterStore)
+    authManager = AuthManager(this)
     
     appUpdateHelper = AppUpdateHelper(this)
     appUpdateHelper.registerListener()
@@ -61,7 +65,7 @@ class MainActivity : ComponentActivity() {
         
         Box(modifier = Modifier.fillMaxSize()) {
             Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) { 
-                MainNavigation(billingManager, supporterStore) 
+                MainNavigation(billingManager, supporterStore, authManager) 
             }
             SnackbarHost(
                 hostState = snackbarHostState,
