@@ -10,8 +10,7 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
 
-    <!-- Required for True Hardware Grayscale via ADB/Shizuku -->
-    <uses-permission android:name="android.permission.WRITE_SECURE_SETTINGS" tools:ignore="ProtectedPermissions" />
+
     
     <!-- Required for Google Play In-App Purchases -->
     <uses-permission android:name="com.android.vending.BILLING" />
@@ -103,11 +102,7 @@
             <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE" android:value="Accessibility persistence" />
         </service>
 
-        <receiver android:name=".adb.AdbPairingReceiver" android:exported="false">
-            <intent-filter>
-                <action android:name="com.example.tethr.ACTION_ADB_PAIR" />
-            </intent-filter>
-        </receiver>
+
 
     </application>
 
