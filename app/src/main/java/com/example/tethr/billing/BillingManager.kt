@@ -10,11 +10,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import com.example.tethr.data.Supabase
-import io.github.jan.supabase.functions.functions
-import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.Json
-import io.ktor.client.statement.bodyAsText
 
 class BillingManager(
     private val context: Context,
@@ -28,13 +23,11 @@ class BillingManager(
 
     private val coroutineScope = CoroutineScope(Dispatchers.IO)
 
-    // Only exposes the new SUBSCRIPTION product details for the UI
     private val _productDetails = MutableStateFlow<ProductDetails?>(null)
     val productDetails: StateFlow<ProductDetails?> = _productDetails
 
     companion object {
-        const val SUBSCRIPTION_ID = "tethr_premium"
-        const val LEGACY_INAPP_ID = "supporter_pack"
+        const val PRODUCT_ID = "supporter_pack"
         private const val TAG = "BillingManager"
     }
 
@@ -56,6 +49,7 @@ class BillingManager(
 
             override fun onBillingServiceDisconnected() {
                 Log.w(TAG, "Billing service disconnected, retrying...")
+                // In a production app, we would implement a retry policy here
             }
         })
     }
@@ -65,8 +59,8 @@ class BillingManager(
             .setProductList(
                 listOf(
                     QueryProductDetailsParams.Product.newBuilder()
-                        .setProductId(SUBSCRIPTION_ID)
-                        .setProductType(BillingClient.ProductType.SUBS)
+                        .setProductId(PRODUCT_ID)
+                        .setProductType(BillingClient.ProductType.INAPP)
                         .build()
                 )
             )
@@ -79,7 +73,7 @@ class BillingManager(
                 if (!list.isNullOrEmpty()) {
                     _productDetails.value = list[0]
                 } else {
-                    Log.e(TAG, "No product details found for $SUBSCRIPTION_ID")
+                    Log.e(TAG, "No product details found for $PRODUCT_ID")
                 }
             } else {
                 Log.e(TAG, "Failed to query product details: ${result.billingResult.debugMessage}")
@@ -88,46 +82,25 @@ class BillingManager(
     }
 
     private fun queryPurchases() {
-        coroutineScope.launch {
-            var isPremium = false
+        val params = QueryPurchasesParams.newBuilder()
+            .setProductType(BillingClient.ProductType.INAPP)
+            .build()
 
-            // 1. Check Legacy In-App Purchases (Grandfathered users)
-            val inappParams = QueryPurchasesParams.newBuilder()
-                .setProductType(BillingClient.ProductType.INAPP)
-                .build()
-            
-            billingClient.queryPurchasesAsync(inappParams) { result, purchases ->
-                if (result.responseCode == BillingClient.BillingResponseCode.OK) {
+        billingClient.queryPurchasesAsync(params) { billingResult, purchases ->
+            if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
+                coroutineScope.launch {
+                    var isPurchased = false
                     for (purchase in purchases) {
                         if (purchase.purchaseState == Purchase.PurchaseState.PURCHASED) {
-                            isPremium = true
-                            coroutineScope.launch {
-                                if (!purchase.isAcknowledged) acknowledgePurchase(purchase)
-                            }
-                        }
-                    }
-                }
-
-                // 2. Check New Subscription Purchases
-                val subsParams = QueryPurchasesParams.newBuilder()
-                    .setProductType(BillingClient.ProductType.SUBS)
-                    .build()
-                
-                billingClient.queryPurchasesAsync(subsParams) { subResult, subPurchases ->
-                    if (subResult.responseCode == BillingClient.BillingResponseCode.OK) {
-                        for (purchase in subPurchases) {
-                            if (purchase.purchaseState == Purchase.PurchaseState.PURCHASED) {
-                                isPremium = true
-                                coroutineScope.launch {
-                                    if (!purchase.isAcknowledged) acknowledgePurchase(purchase)
+                            if (purchase.products.contains(PRODUCT_ID)) {
+                                isPurchased = true
+                                if (!purchase.isAcknowledged) {
+                                    acknowledgePurchase(purchase)
                                 }
                             }
                         }
                     }
-                    // Update UI State
-                    coroutineScope.launch {
-                        supporterStore.setSupporter(isPremium)
-                    }
+                    supporterStore.setSupporter(isPurchased)
                 }
             }
         }
@@ -137,48 +110,18 @@ class BillingManager(
         if (billingResult.responseCode == BillingClient.BillingResponseCode.OK && purchases != null) {
             for (purchase in purchases) {
                 if (purchase.purchaseState == Purchase.PurchaseState.PURCHASED) {
-                    verifyPurchaseWithBackend(purchase)
+                    coroutineScope.launch {
+                        supporterStore.setSupporter(true)
+                        if (!purchase.isAcknowledged) {
+                            acknowledgePurchase(purchase)
+                        }
+                    }
                 }
             }
         } else if (billingResult.responseCode == BillingClient.BillingResponseCode.USER_CANCELED) {
             Log.d(TAG, "User canceled the purchase")
         } else {
             Log.e(TAG, "Purchase error: ${billingResult.debugMessage}")
-        }
-    }
-
-    @Serializable
-    data class VerifyRequest(val purchaseToken: String, val subscriptionId: String?, val packageName: String)
-    @Serializable
-    data class VerifyResponse(val isPremium: Boolean)
-
-    private fun verifyPurchaseWithBackend(purchase: Purchase) {
-        coroutineScope.launch {
-            try {
-                val data = VerifyRequest(
-                    purchaseToken = purchase.purchaseToken,
-                    subscriptionId = purchase.products.firstOrNull(),
-                    packageName = context.packageName
-                )
-
-                val response = Supabase.client.functions.invoke(
-                    function = "verify-subscription",
-                    body = data
-                )
-                
-                val resultData = Json { ignoreUnknownKeys = true }.decodeFromString<VerifyResponse>(response.bodyAsText())
-                
-                if (resultData.isPremium) {
-                    supporterStore.setSupporter(true)
-                    if (!purchase.isAcknowledged) {
-                        acknowledgePurchase(purchase)
-                    }
-                } else {
-                    Log.e(TAG, "Backend verification failed: isPremium is false")
-                }
-            } catch (e: Exception) {
-                Log.e(TAG, "Backend verification network/server error", e)
-            }
         }
     }
 
@@ -196,20 +139,11 @@ class BillingManager(
     }
 
     fun launchBillingFlow(activity: Activity) {
-        val details = _productDetails.value
-        if (details != null) {
-            // For subscriptions, we must select an offer token (e.g. Free Trial or Base Plan)
-            val offerToken = details.subscriptionOfferDetails?.firstOrNull()?.offerToken
-            
-            if (offerToken == null) {
-                Log.e(TAG, "No offer token available for subscription.")
-                return
-            }
-
+        val productDetails = _productDetails.value
+        if (productDetails != null) {
             val productDetailsParamsList = listOf(
                 BillingFlowParams.ProductDetailsParams.newBuilder()
-                    .setProductDetails(details)
-                    .setOfferToken(offerToken)
+                    .setProductDetails(productDetails)
                     .build()
             )
 

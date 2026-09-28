@@ -14,10 +14,8 @@ android {
         applicationId = "ai.tethr.app"
         minSdk = 24
         targetSdk = 36
-        versionCode = 24
-        versionName = "2.4"
-        
-        buildConfigField("String", "WEB_CLIENT_ID", "\"881235073728-7pbe6nlqems4524qbde2is0o6ekprjh7.apps.googleusercontent.com\"")
+        versionCode = 18
+        versionName = "1.17"
     }
 
     ndkVersion = "28.2.13676358"
@@ -121,17 +119,6 @@ dependencies {
   // Google Play App Update
   implementation("com.google.android.play:app-update:2.1.0")
   implementation("com.google.android.play:app-update-ktx:2.1.0")
-
-  // Google Credential Manager (Sign-In)
-  implementation("androidx.credentials:credentials:1.5.0-alpha05")
-  implementation("androidx.credentials:credentials-play-services-auth:1.5.0-alpha05")
-  implementation("com.google.android.libraries.identity.googleid:googleid:1.1.1")
-
-  // Supabase
-  implementation("io.github.jan-tennert.supabase:auth-kt:3.0.2")
-  implementation("io.github.jan-tennert.supabase:postgrest-kt:3.0.2")
-  implementation("io.github.jan-tennert.supabase:functions-kt:3.0.2")
-  implementation("io.ktor:ktor-client-okhttp:3.0.0")
 }
 
 // Patch all merged native libraries to use 16KB ELF alignment.
